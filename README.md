@@ -8,6 +8,7 @@
 
 ## Tech Demos
 
+- [batching.html](batching.html) -- batching system supporting all SFML drawables 
 - [island.html](island.html) -- island generator driven by vertex buffers
 - [shader.html](shader.html) -- shader gallery
 - [sound_effects.html](sound_effects.html) -- audio effect playground
