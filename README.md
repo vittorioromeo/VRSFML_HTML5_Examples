@@ -4,16 +4,17 @@
 
 ## Games
 
+- [arkanoid.html](arkanoid.html) -- clone of Arkanoid/Breakout
 - [tennis.html](tennis.html) -- clone of Pong
 
 ## Tech Demos
 
-- [batching.html](batching.html) -- batching system supporting all SFML drawables 
+- [batching.html](batching.html) -- batching system supporting all SFML drawables
 - [island.html](island.html) -- island generator driven by vertex buffers
 - [shader.html](shader.html) -- shader gallery
 - [sound_effects.html](sound_effects.html) -- audio effect playground
 - [imgui_minimal.html](imgui_minimal.html) -- showcase of Dear ImGui + SFML
-  
+
 ## Internal Tests
 
 - [event_handling.html](event_handling.html)
