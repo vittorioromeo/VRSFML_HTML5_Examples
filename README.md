@@ -10,7 +10,6 @@
 ## Tech Demos
 
 - [batching.html](batching.html) -- batching system supporting all SFML drawables
-- [particles.html](particles.html) -- particle simulation comparing AoS vs SoA
 - [island.html](island.html) -- island generator driven by vertex buffers
 - [particles.html](particles.html) -- AoS vs SoA particle benchmark (with batching)
 - [shader.html](shader.html) -- shader gallery
