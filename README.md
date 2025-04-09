@@ -19,5 +19,6 @@
 ## Internal Tests
 
 - [event_handling.html](event_handling.html)
+- [keyboard.html](keyboard.html)
 - [joystick.html](joystick.html)
 - [stencil.html](stencil.html)
