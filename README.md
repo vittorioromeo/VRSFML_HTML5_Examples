@@ -12,6 +12,7 @@
 ## Tech Demos
 
 - [rockets.html](rockets.html) -- OOP vs AoS vs SoA demo for my [CppCon 2025 Keynote](https://www.youtube.com/watch?v=SzjJfKHygaQ)
+- [showcase.html](showcase.html) -- interactive showcase of many VRSFML features
 - [batching.html](batching.html) -- batching system supporting all SFML drawables
 - [island.html](island.html) -- island generator driven by vertex buffers
 - [particles.html](particles.html) -- AoS vs SoA particle benchmark (with batching)
