@@ -494,8 +494,9 @@ function exitRuntime() {
   callRuntimeCallbacks(onExits);
   FS.quit();
   TTY.shutdown();
+  clearTimers();
   // End ATEXITS hooks
-  PThread.terminateAllThreads();
+  PThread.terminateRuntime();
   runtimeExited = true;
 }
 
@@ -829,6 +830,8 @@ function exitOnMainThread(returnCode) {
 
 var _exit = exitJS;
 
+var waitAsyncPolyfilled = (!Atomics.waitAsync || (globalThis.navigator?.userAgent && Number((navigator.userAgent.match(/Chrom(e|ium)\/([0-9]+)\./) || [])[2]) < 91));
+
 var PThread = {
   unusedWorkers: [],
   runningWorkers: [],
@@ -856,6 +859,17 @@ var PThread = {
     PThread.unusedWorkers = [];
     PThread.runningWorkers = [];
     PThread.pthreads = {};
+  },
+  terminateRuntime: () => {
+    PThread.terminateAllThreads();
+    var pthread_ptr = _pthread_self();
+    ___set_thread_state(0, 0, 0, 1);
+    if (!waitAsyncPolyfilled) {
+      // Break the waitAsync loop.  Note that checkMailbox will not
+      // re-register since the `___set_thread_state` above causes _pthread_self
+      // to return 0.
+      Atomics.notify((growMemViews(), HEAP32), ((pthread_ptr) >> 2));
+    }
   },
   returnWorkerToPool: worker => {
     // We don't want to run main thread queued calls here, since we are doing
@@ -894,7 +908,7 @@ var PThread = {
         if (targetWorker) {
           targetWorker.postMessage(d, d.transferList);
         } else {
-          err(`Internal error! Worker sent a message "${cmd}" to target pthread ${d.targetThread}, but that thread no longer exists!`);
+          err(`worker sent message (${cmd}) to pthread (${d.targetThread}) that no longer exists`);
         }
         return;
       }
@@ -2164,7 +2178,7 @@ var FS = {
     if (!PATH.isAbs(path)) {
       path = FS.cwd() + "/" + path;
     }
-    // limit max consecutive symlinks to 40 (SYMLOOP_MAX).
+    // limit max consecutive symlinks to SYMLOOP_MAX.
     linkloop: for (var nlinks = 0; nlinks < 40; nlinks++) {
       // split the absolute path
       var parts = path.split("/").filter(p => !!p);
@@ -2447,7 +2461,14 @@ var FS = {
     var arg = setattr ? stream : node;
     setattr ??= node.node_ops.setattr;
     FS.checkOpExists(setattr, 63);
-    setattr(arg, attr);
+    try {
+      setattr(arg, attr);
+    } catch (e) {
+      if (e instanceof RangeError) {
+        throw new FS.ErrnoError(22);
+      }
+      throw e;
+    }
   },
   chrdev_stream_ops: {
     open(stream) {
@@ -3674,6 +3695,7 @@ var FS = {
 };
 
 var SYSCALLS = {
+  currentUmask: 18,
   calculateAt(dirfd, path, allowEmpty) {
     if (PATH.isAbs(path)) {
       return path;
@@ -3782,7 +3804,8 @@ function ___syscall_fcntl64(fd, cmd, varargs) {
      case 4:
       {
         var arg = syscallGetVarargI();
-        stream.flags |= arg;
+        var mask = 289792;
+        stream.flags = (stream.flags & ~mask) | (arg & mask);
         return 0;
       }
 
@@ -3987,6 +4010,9 @@ function ___syscall_openat(dirfd, path, flags, varargs) {
     path = SYSCALLS.getStr(path);
     path = SYSCALLS.calculateAt(dirfd, path);
     var mode = varargs ? syscallGetVarargI() : 0;
+    if (flags & 64) {
+      mode &= ~SYSCALLS.currentUmask;
+    }
     return FS.open(path, flags, mode).fd;
   } catch (e) {
     if (typeof FS == "undefined" || !(e.name === "ErrnoError")) throw e;
@@ -4060,8 +4086,6 @@ var callUserCallback = func => {
   }
 };
 
-var waitAsyncPolyfilled = (!Atomics.waitAsync || (globalThis.navigator?.userAgent && Number((navigator.userAgent.match(/Chrom(e|ium)\/([0-9]+)\./) || [])[2]) < 91));
-
 var __emscripten_thread_mailbox_await = pthread_ptr => {
   if (!waitAsyncPolyfilled) {
     // Wait on the pthread's initial self-pointer field because it is easy and
@@ -4077,23 +4101,23 @@ var __emscripten_thread_mailbox_await = pthread_ptr => {
   }
 };
 
-var checkMailbox = () => callUserCallback(() => {
-  // Only check the mailbox if we have a live pthread runtime. We implement
-  // pthread_self to return 0 if there is no live runtime.
-  // TODO(https://github.com/emscripten-core/emscripten/issues/25076):
-  // Is this check still needed?  `callUserCallback` is supposed to
-  // ensure the runtime is alive, and if `_pthread_self` is NULL then the
-  // runtime certainly is *not* alive, so this should be a redundant check.
+var checkMailbox = () => {
+  // checkMailbox can be called after the pthread has shut down. See
+  // Pthread.terminateRuntime().
+  // In this case we return silently without re-registering using waitAsync.
+  // Perhaps there is a more universal way we can detect runtime has exited.
+  // TODO(https://github.com/emscripten-core/emscripten/issues/25076)
   var pthread_ptr = _pthread_self();
-  if (pthread_ptr) {
+  if (!pthread_ptr) return;
+  callUserCallback(() => {
     // If we are using Atomics.waitAsync as our notification mechanism, wait
     // for a notification before processing the mailbox to avoid missing any
     // work that could otherwise arrive after we've finished processing the
     // mailbox and before we're ready for the next notification.
     __emscripten_thread_mailbox_await(pthread_ptr);
     __emscripten_check_mailbox();
-  }
-});
+  });
+};
 
 var __emscripten_notify_mailbox_postmessage = (targetThread, currThreadId) => {
   if (targetThread == currThreadId) {
@@ -4176,6 +4200,12 @@ var __emscripten_thread_set_strongref = thread => {
 };
 
 var timers = {};
+
+var clearTimers = () => {
+  for (var t of Object.values(timers)) {
+    clearTimeout(t.id);
+  }
+};
 
 var _emscripten_get_now = () => performance.timeOrigin + performance.now();
 
@@ -4615,13 +4645,8 @@ var Browser = {
     // in the coordinates.
     var canvas = Browser.getCanvas();
     var rect = canvas.getBoundingClientRect();
-    // Neither .scrollX or .pageXOffset are defined in a spec, but
-    // we prefer .scrollX because it is currently in a spec draft.
-    // (see: http://www.w3.org/TR/2013/WD-cssom-view-20131217/)
-    var scrollX = ((typeof window.scrollX != "undefined") ? window.scrollX : window.pageXOffset);
-    var scrollY = ((typeof window.scrollY != "undefined") ? window.scrollY : window.pageYOffset);
-    var adjustedX = pageX - (scrollX + rect.left);
-    var adjustedY = pageY - (scrollY + rect.top);
+    var adjustedX = pageX - (window.scrollX + rect.left);
+    var adjustedY = pageY - (window.scrollY + rect.top);
     // the canvas might be CSS-scaled compared to its backbuffer;
     // SDL-using content will want mouse coordinates in terms
     // of backbuffer units.
@@ -8108,7 +8133,8 @@ function preprocess_c_code(code, defs = {}) {
           var kind2 = classifyChar(str, j);
           if (kind2 != 2 && kind2 != 3) {
             var symbol = str.substring(i, j);
-            if (Object.hasOwn(defs, symbol)) {
+            // Firefox only introduced Object.hasOwn() in Firefox 92.
+            if (defs.hasOwnProperty(symbol)) {
               var pp = defs[symbol], expanded;
               if (typeof pp == "function") {
                 // definition is a function?
@@ -9397,7 +9423,6 @@ var getExecutableName = () => thisProgram || "./this.program";
 var getEnvStrings = () => {
   if (!getEnvStrings.strings) {
     // Default values.
-    // Browser language detection #8751
     var lang = (globalThis.navigator?.language ?? "C").replace("-", "_") + ".UTF-8";
     var env = {
       "USER": "web_user",
@@ -9496,7 +9521,7 @@ function _fd_seek(fd, offset, whence, newOffset) {
   if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(54, 0, 1, fd, offset, whence, newOffset);
   offset = bigintToI53Checked(offset);
   try {
-    if (isNaN(offset)) return 61;
+    if (isNaN(offset)) return 22;
     var stream = SYSCALLS.getStreamFromFD(fd);
     FS.llseek(stream, offset, whence);
     (growMemViews(), HEAP64)[((newOffset) >> 3)] = BigInt(stream.position);
@@ -9848,7 +9873,7 @@ Module["FS_createLazyFile"] = FS_createLazyFile;
 var proxiedFunctionTable = [ _proc_exit, exitOnMainThread, ___syscall_fcntl64, ___syscall_fdatasync, ___syscall_fstat64, ___syscall_ioctl, ___syscall_lstat64, ___syscall_newfstatat, ___syscall_openat, ___syscall_stat64, __setitimer_js, _eglChooseConfig, _eglCreateContext, _eglCreateWindowSurface, _eglDestroySurface, _eglGetConfigAttrib, _eglGetCurrentContext, _eglGetDisplay, _eglInitialize, _eglMakeCurrent, _eglSwapBuffers, _emscripten_exit_fullscreen, getCanvasSizeMainThread, setCanvasElementSizeMainThread, _emscripten_exit_pointerlock, _emscripten_get_device_pixel_ratio, _emscripten_get_element_css_size, _emscripten_get_fullscreen_status, _emscripten_get_gamepad_status, _emscripten_get_num_gamepads, _emscripten_get_screen_size, _emscripten_request_fullscreen_strategy, _emscripten_request_pointerlock, _emscripten_sample_gamepad_data, _emscripten_set_beforeunload_callback_on_thread, _emscripten_set_blur_callback_on_thread, _emscripten_set_element_css_size, _emscripten_set_focus_callback_on_thread, _emscripten_set_fullscreenchange_callback_on_thread, _emscripten_set_gamepadconnected_callback_on_thread, _emscripten_set_gamepaddisconnected_callback_on_thread, _emscripten_set_keydown_callback_on_thread, _emscripten_set_keypress_callback_on_thread, _emscripten_set_keyup_callback_on_thread, _emscripten_set_orientationchange_callback_on_thread, _emscripten_set_pointerlockchange_callback_on_thread, _emscripten_set_resize_callback_on_thread, _emscripten_set_visibilitychange_callback_on_thread, _emscripten_set_wheel_callback_on_thread, _emscripten_set_window_title, _environ_get, _environ_sizes_get, _fd_close, _fd_read, _fd_seek, _fd_write ];
 
 var ASM_CONSTS = {
-  521160: () => {
+  521400: () => {
     if (typeof (Module["SDL3"]) === "undefined") {
       Module["SDL3"] = {};
     }
@@ -9864,7 +9889,7 @@ var ASM_CONSTS = {
       };
     }
   },
-  521474: $0 => {
+  521714: $0 => {
     let gamepad = navigator["getGamepads"]()[$0];
     if (!gamepad) {
       return 0;
@@ -9880,7 +9905,7 @@ var ASM_CONSTS = {
     }
     return 0;
   },
-  521939: $0 => {
+  522179: $0 => {
     let gamepad = navigator["getGamepads"]()[$0];
     if (!gamepad) {
       return 0;
@@ -9896,14 +9921,14 @@ var ASM_CONSTS = {
     }
     return 0;
   },
-  522411: $0 => {
+  522651: $0 => {
     let gamepad = navigator["getGamepads"]()[$0];
     if (!gamepad) {
       return 0;
     }
     return gamepad["id"]["toLowerCase"]()["indexOf"]("xinput") >= 0;
   },
-  522554: $0 => {
+  522794: $0 => {
     let gamepads = navigator["getGamepads"]();
     if (!gamepads) {
       return 0;
@@ -9914,7 +9939,7 @@ var ASM_CONSTS = {
     }
     return 1;
   },
-  522729: ($0, $1, $2) => {
+  522969: ($0, $1, $2) => {
     let gamepads = navigator["getGamepads"]();
     if (!gamepads) {
       return 0;
@@ -9931,7 +9956,7 @@ var ASM_CONSTS = {
     });
     return 1;
   },
-  523065: $0 => {
+  523305: $0 => {
     try {
       var id = UTF8ToString($0);
       var canvas = document.querySelector(id);
@@ -9943,7 +9968,7 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  523243: ($0, $1, $2, $3) => {
+  523483: ($0, $1, $2, $3) => {
     var w = $0;
     var h = $1;
     var pixels = $2;
@@ -9985,7 +10010,7 @@ var ASM_CONSTS = {
     window_data.ctx.putImageData(window_data.image, 0, 0);
     return true;
   },
-  524321: () => {
+  524561: () => {
     var SDL3 = Module["SDL3"];
     SDL3["mouse_x"] = 0;
     SDL3["mouse_y"] = 0;
@@ -10011,7 +10036,7 @@ var ASM_CONSTS = {
       }
     });
   },
-  525009: ($0, $1, $2, $3, $4) => {
+  525249: ($0, $1, $2, $3, $4) => {
     var w = $0;
     var h = $1;
     var hot_x = $2;
@@ -10032,20 +10057,20 @@ var ASM_CONSTS = {
     stringToUTF8(url, urlBuf, url.length + 1);
     return urlBuf;
   },
-  525667: $0 => {
+  525907: $0 => {
     if (Module["canvas"]) {
       Module["canvas"].style["cursor"] = UTF8ToString($0);
     }
   },
-  525750: () => {
+  525990: () => {
     if (Module["canvas"]) {
       Module["canvas"].style["cursor"] = "none";
     }
   },
-  525819: () => Module["SDL3"]["mouse_x"],
-  525857: () => Module["SDL3"]["mouse_y"],
-  525895: $0 => Module["SDL3"]["mouse_buttons"][$0],
-  525943: $0 => {
+  526059: () => Module["SDL3"]["mouse_x"],
+  526097: () => Module["SDL3"]["mouse_y"],
+  526135: $0 => Module["SDL3"]["mouse_buttons"][$0],
+  526183: $0 => {
     var data = $0;
     document.sdlEventHandlerLockKeysCheck = function(event) {
       if ((event.key != "CapsLock") && (event.key != "NumLock") && (event.key != "ScrollLock")) {
@@ -10054,10 +10079,10 @@ var ASM_CONSTS = {
     };
     document.addEventListener("keydown", document.sdlEventHandlerLockKeysCheck);
   },
-  526370: () => {
+  526610: () => {
     document.removeEventListener("keydown", document.sdlEventHandlerLockKeysCheck);
   },
-  526454: $0 => {
+  526694: $0 => {
     var target = document;
     if (target) {
       target.sdlEventHandlerMouseButtonUpGlobal = function(event) {
@@ -10071,7 +10096,7 @@ var ASM_CONSTS = {
       target.addEventListener("pointerup", target.sdlEventHandlerMouseButtonUpGlobal);
     }
   },
-  526815: $0 => {
+  527055: $0 => {
     var SDL3 = Module["SDL3"];
     if (SDL3.makePointerEventCStruct === undefined) {
       SDL3.makePointerEventCStruct = function(left, top, event) {
@@ -10109,7 +10134,7 @@ var ASM_CONSTS = {
       };
     }
   },
-  527807: $0 => {
+  528047: $0 => {
     var id = UTF8ToString($0);
     try {
       var canvas = document.querySelector(id);
@@ -10119,23 +10144,23 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  527973: () => document.hasFocus(),
-  528005: () => {
+  528213: () => document.hasFocus(),
+  528245: () => {
     var target = document;
     if (target) {
       target.removeEventListener("pointerup", target.sdlEventHandlerMouseButtonUpGlobal);
       target.sdlEventHandlerMouseButtonUpGlobal = undefined;
     }
   },
-  528187: () => document.body.clientWidth,
-  528225: () => document.body.clientHeight,
-  528264: () => window.innerWidth,
-  528294: () => window.innerHeight,
-  528325: () => window.outerWidth,
-  528355: () => window.outerHeight,
-  528386: () => window.pageXOffset,
-  528417: () => window.pageYOffset,
-  528448: ($0, $1) => {
+  528427: () => document.body.clientWidth,
+  528465: () => document.body.clientHeight,
+  528504: () => window.innerWidth,
+  528534: () => window.innerHeight,
+  528565: () => window.outerWidth,
+  528595: () => window.outerHeight,
+  528626: () => window.pageXOffset,
+  528657: () => window.pageYOffset,
+  528688: ($0, $1) => {
     var target = document.querySelector(UTF8ToString($1));
     if (target) {
       var SDL3 = Module["SDL3"];
@@ -10173,7 +10198,7 @@ var ASM_CONSTS = {
       target.addEventListener("pointerup", target.sdlEventHandlerPointerGeneric);
     }
   },
-  529836: ($0, $1, $2) => {
+  530076: ($0, $1, $2) => {
     var id = UTF8ToString($1);
     var target = document.querySelector(id);
     if (target) {
@@ -10262,7 +10287,7 @@ var ASM_CONSTS = {
       target.addEventListener("dragleave", window_data.eventHandlerDropDragend);
     }
   },
-  532460: $0 => {
+  532700: $0 => {
     var id = UTF8ToString($0);
     var target = document.querySelector(id);
     if (target) {
@@ -10299,7 +10324,7 @@ var ASM_CONSTS = {
       window_data.eventHandlerDropDragend = undefined;
     }
   },
-  533530: $0 => {
+  533770: $0 => {
     var target = document.querySelector(UTF8ToString($0));
     if (target) {
       target.removeEventListener("pointerenter", target.sdlEventHandlerPointerEnter);
@@ -10314,7 +10339,7 @@ var ASM_CONSTS = {
       target.sdlEventHandlerPointerGeneric = undefined;
     }
   },
-  534264: () => {
+  534504: () => {
     if (!window.matchMedia) {
       return -1;
     }
@@ -10326,7 +10351,7 @@ var ASM_CONSTS = {
     }
     return -1;
   },
-  534473: () => {
+  534713: () => {
     if (typeof (Module["SDL3"]) !== "undefined") {
       var SDL3 = Module["SDL3"];
       SDL3.themeChangedMatchMedia.removeEventListener("change", SDL3.eventHandlerThemeChanged);
@@ -10334,14 +10359,14 @@ var ASM_CONSTS = {
       SDL3.eventHandlerThemeChanged = undefined;
     }
   },
-  534726: () => window.innerWidth,
-  534756: () => window.innerHeight,
-  534787: $0 => {
+  534966: () => window.innerWidth,
+  534996: () => window.innerHeight,
+  535027: $0 => {
     Module["requestFullscreen"] = function(lockPointer, resizeCanvas) {
       _requestFullscreenThroughSDL($0);
     };
   },
-  534896: ($0, $1, $2) => {
+  535136: ($0, $1, $2) => {
     try {
       var id = UTF8ToString($0);
       var x = $1;
@@ -10355,7 +10380,7 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  535178: ($0, $1) => {
+  535418: ($0, $1) => {
     var id = UTF8ToString($0);
     var display = UTF8ToString($1);
     try {
@@ -10365,7 +10390,7 @@ var ASM_CONSTS = {
       }
     } catch (e) {}
   },
-  535351: ($0, $1) => {
+  535591: ($0, $1) => {
     var pngData = (growMemViews(), HEAPU8).buffer instanceof ArrayBuffer ? (growMemViews(), 
     HEAPU8).subarray($0, $0 + $1) : (growMemViews(), HEAPU8).slice($0, $0 + $1);
     var blob = new Blob([ pngData ], {
@@ -10384,10 +10409,10 @@ var ASM_CONSTS = {
     }
     link.href = url;
   },
-  535844: () => {
+  536084: () => {
     Module["requestFullscreen"] = function(lockPointer, resizeCanvas) {};
   },
-  535918: ($0, $1) => {
+  536158: ($0, $1) => {
     var id = UTF8ToString($0);
     var array = new Uint32Array(Module.HEAPU32.buffer, $1, 4);
     try {
@@ -10403,7 +10428,7 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  536241: $0 => {
+  536481: $0 => {
     var id = UTF8ToString($0);
     try {
       var element = document.querySelector(id);
@@ -10413,15 +10438,15 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  536419: $0 => {
+  536659: $0 => {
     var w = $0;
     return window.innerWidth / 2 - w / 2;
   },
-  536473: $0 => {
+  536713: $0 => {
     var h = $0;
     return window.innerHeight / 2 - h / 2;
   },
-  536528: ($0, $1, $2) => {
+  536768: ($0, $1, $2) => {
     try {
       var id = UTF8ToString($0);
       var rect = new Int32Array(Module.HEAP32.buffer, $1, 4);
@@ -10451,9 +10476,9 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  537253: () => window.innerWidth,
-  537283: () => window.innerHeight,
-  537314: $0 => {
+  537493: () => window.innerWidth,
+  537523: () => window.innerHeight,
+  537554: $0 => {
     var canvas = document.querySelector(UTF8ToString($0));
     canvas.SDL3_original_position = canvas.style.position;
     canvas.SDL3_original_top = canvas.style.top;
@@ -10474,7 +10499,7 @@ var ASM_CONSTS = {
     canvas.style.top = "0";
     canvas.style.left = "0";
   },
-  538012: () => {
+  538252: () => {
     var div = document.getElementById("SDL3_fill_document_background_elements");
     if (div) {
       if (div.SDL3_canvas_nextsib) {
@@ -10491,7 +10516,7 @@ var ASM_CONSTS = {
       div.remove();
     }
   },
-  538571: () => {
+  538811: () => {
     if (window.matchMedia) {
       var SDL3 = Module["SDL3"];
       SDL3.eventHandlerThemeChanged = function(event) {
@@ -10501,7 +10526,7 @@ var ASM_CONSTS = {
       SDL3.themeChangedMatchMedia.addEventListener("change", SDL3.eventHandlerThemeChanged);
     }
   },
-  538893: ($0, $1, $2, $3, $4) => {
+  539133: ($0, $1, $2, $3, $4) => {
     var title = UTF8ToString($0);
     var message = UTF8ToString($1);
     var background = UTF8ToString($2);
@@ -10521,7 +10546,7 @@ var ASM_CONSTS = {
     dialog.append(p);
     dialog.showModal();
   },
-  539434: ($0, $1, $2, $3, $4, $5, $6, $7) => {
+  539674: ($0, $1, $2, $3, $4, $5, $6, $7) => {
     var dialog_id = UTF8ToString($0);
     var text = UTF8ToString($1);
     var responseId = $2;
@@ -10562,7 +10587,7 @@ var ASM_CONSTS = {
     dialog.append(button);
     return true;
   },
-  540443: $0 => {
+  540683: $0 => {
     var dialog_id = UTF8ToString($0);
     var dialog = document.getElementById(dialog_id);
     if (!dialog) {
@@ -10570,7 +10595,7 @@ var ASM_CONSTS = {
     }
     return dialog.open;
   },
-  540581: $0 => {
+  540821: $0 => {
     var dialog_id = UTF8ToString($0);
     var dialog = document.getElementById(dialog_id);
     if (!dialog) {
@@ -10582,13 +10607,13 @@ var ASM_CONSTS = {
       return 0;
     }
   },
-  540763: ($0, $1) => {
+  541003: ($0, $1) => {
     alert(UTF8ToString($0) + "\n\n" + UTF8ToString($1));
   }
 };
 
 // Imports from the Wasm binary.
-var _main, _malloc, _fflush, _free, _SDL_free, _SDL_malloc, _SDL_calloc, _Emscripten_force_free, _SDL_realloc, _Emscripten_HandlePointerEnter, _Emscripten_HandlePointerLeave, _Emscripten_HandlePointerGeneric, _Emscripten_HandleMouseButtonUpGlobal, _Emscripten_SendDragEvent, _Emscripten_SendDragCompleteEvent, _Emscripten_SendDragTextEvent, _Emscripten_SendDragFileEvent, _Emscripten_HandleLockKeysCheck, _Emscripten_SendSystemThemeChangedEvent, _requestFullscreenThroughSDL, __emscripten_tls_init, _pthread_self, __emscripten_run_callback_on_thread, ___funcs_on_exit, __emscripten_thread_init, __emscripten_thread_crashed, __emscripten_run_js_on_main_thread_done, __emscripten_run_js_on_main_thread, __emscripten_thread_free_data, __emscripten_thread_exit, __emscripten_timeout, __emscripten_check_mailbox, _emscripten_stack_set_limits, __emscripten_stack_restore, __emscripten_stack_alloc, _emscripten_stack_get_current, dynCall_vii, dynCall_viiii, dynCall_iii, dynCall_iiii, dynCall_viii, dynCall_iiiii, dynCall_vi, dynCall_ii, dynCall_jiji, dynCall_ji, dynCall_iiiiii, dynCall_viiiii, dynCall_viiiiii, dynCall_i, dynCall_v, dynCall_iiiiiiii, dynCall_fii, dynCall_vffff, dynCall_vf, dynCall_viiiiiiii, dynCall_viiiiiiiii, dynCall_vff, dynCall_viiiiiii, dynCall_vfi, dynCall_viif, dynCall_vif, dynCall_viff, dynCall_vifff, dynCall_viffff, dynCall_vfff, dynCall_viiiiiiiiii, dynCall_viiiiiiiiiii, dynCall_viifi, dynCall_iiij, dynCall_viij, dynCall_iidiiii, dynCall_viijii, dynCall_iiiiiiiii, dynCall_iiiiiii, dynCall_iiiiij, dynCall_iiiiid, dynCall_iiiiijj, dynCall_iiiiiijj, _asyncify_start_unwind, _asyncify_stop_unwind, _asyncify_start_rewind, _asyncify_stop_rewind, __indirect_function_table;
+var _main, _malloc, _fflush, _free, _SDL_free, _SDL_malloc, _SDL_calloc, _Emscripten_force_free, _SDL_realloc, _Emscripten_HandlePointerEnter, _Emscripten_HandlePointerLeave, _Emscripten_HandlePointerGeneric, _Emscripten_HandleMouseButtonUpGlobal, _Emscripten_SendDragEvent, _Emscripten_SendDragCompleteEvent, _Emscripten_SendDragTextEvent, _Emscripten_SendDragFileEvent, _Emscripten_HandleLockKeysCheck, _Emscripten_SendSystemThemeChangedEvent, _requestFullscreenThroughSDL, __emscripten_tls_init, _pthread_self, __emscripten_run_callback_on_thread, ___funcs_on_exit, __emscripten_thread_init, ___set_thread_state, __emscripten_thread_crashed, __emscripten_run_js_on_main_thread_done, __emscripten_run_js_on_main_thread, __emscripten_thread_free_data, __emscripten_thread_exit, __emscripten_timeout, __emscripten_check_mailbox, _emscripten_stack_set_limits, __emscripten_stack_restore, __emscripten_stack_alloc, _emscripten_stack_get_current, dynCall_vii, dynCall_viiii, dynCall_iii, dynCall_iiii, dynCall_viii, dynCall_iiiii, dynCall_vi, dynCall_ii, dynCall_jiji, dynCall_ji, dynCall_iiiiii, dynCall_viiiii, dynCall_viiiiii, dynCall_i, dynCall_v, dynCall_iiiiiiii, dynCall_fii, dynCall_vffff, dynCall_vf, dynCall_viiiiiiii, dynCall_viiiiiiiii, dynCall_vff, dynCall_viiiiiii, dynCall_vfi, dynCall_viif, dynCall_vif, dynCall_viff, dynCall_vifff, dynCall_viffff, dynCall_vfff, dynCall_viiiiiiiiii, dynCall_viiiiiiiiiii, dynCall_viifi, dynCall_iiij, dynCall_viij, dynCall_iidiiii, dynCall_viijii, dynCall_iiiiiiiii, dynCall_iiiiiii, dynCall_iiiiij, dynCall_iiiiid, dynCall_iiiiijj, dynCall_iiiiiijj, _asyncify_start_unwind, _asyncify_stop_unwind, _asyncify_start_rewind, _asyncify_stop_rewind, __indirect_function_table;
 
 function assignWasmExports(wasmExports) {
   _main = Module["_main"] = wasmExports["main"];
@@ -10616,6 +10641,7 @@ function assignWasmExports(wasmExports) {
   __emscripten_run_callback_on_thread = wasmExports["_emscripten_run_callback_on_thread"];
   ___funcs_on_exit = wasmExports["__funcs_on_exit"];
   __emscripten_thread_init = wasmExports["_emscripten_thread_init"];
+  ___set_thread_state = wasmExports["__set_thread_state"];
   __emscripten_thread_crashed = wasmExports["_emscripten_thread_crashed"];
   __emscripten_run_js_on_main_thread_done = wasmExports["_emscripten_run_js_on_main_thread_done"];
   __emscripten_run_js_on_main_thread = wasmExports["_emscripten_run_js_on_main_thread"];
@@ -11117,7 +11143,16 @@ if ((!(ENVIRONMENT_IS_PTHREAD))) {
  *
  * This file gets implicitly injected as a `--post-js` file when
  * emcc is run with `--emrun`
- */ if (globalThis.window && (typeof ENVIRONMENT_IS_PTHREAD == "undefined" || !ENVIRONMENT_IS_PTHREAD)) {
+ */ // POSTs the given binary data represented as a (typed) array data back to the
+// emrun-based web server.
+// To use from C code, call e.g:
+//   EM_ASM({emrun_file_dump("file.dat", HEAPU8.subarray($0, $0 + $1));}, my_data_pointer, my_data_pointer_byte_length);
+// Note: this functions does nothing by default but gets redefined below
+// in `emrun_register_handlers` when emrun is active, along with `out` and
+// `err`.
+var emrun_file_dump = (filename, data) => {};
+
+if (globalThis.window && globalThis.document && (typeof ENVIRONMENT_IS_PTHREAD == "undefined" || !ENVIRONMENT_IS_PTHREAD)) {
   var emrun_register_handlers = () => {
     // When C code exit()s, we may still have remaining stdout and stderr
     // messages in flight. In that case, we can't close the browser until all
@@ -11139,7 +11174,7 @@ if ((!(ENVIRONMENT_IS_PTHREAD))) {
         window.close();
       } catch (e) {}
     };
-    var post = msg => {
+    var post = (url, msg) => {
       var http = new XMLHttpRequest;
       ++emrun_num_post_messages_in_flight;
       http.onreadystatechange = () => {
@@ -11149,7 +11184,7 @@ if ((!(ENVIRONMENT_IS_PTHREAD))) {
           }
         }
       };
-      http.open("POST", "stdio.html", true);
+      http.open("POST", url, true);
       http.send(msg);
     };
     // If the address contains localhost, or we are running the page from port
@@ -11167,18 +11202,25 @@ if ((!(ENVIRONMENT_IS_PTHREAD))) {
         }
       });
       out = text => {
-        post("^out^" + (emrun_http_sequence_number++) + "^" + encodeURIComponent(text));
+        post("stdio.html", "^out^" + (emrun_http_sequence_number++) + "^" + encodeURIComponent(text));
         prevPrint(text);
       };
       err = text => {
-        post("^err^" + (emrun_http_sequence_number++) + "^" + encodeURIComponent(text));
+        post("stdio.html", "^err^" + (emrun_http_sequence_number++) + "^" + encodeURIComponent(text));
         prevErr(text);
+      };
+      emrun_file_dump = (filename, data) => {
+        out(`Dumping out file "${filename}" with ${data.length} bytes of data.`);
+        if (ArrayBuffer.isView(data) && typeof SharedArrayBuffer !== "undefined" && data.buffer instanceof SharedArrayBuffer) {
+          data = new data.constructor(data);
+        }
+        post("stdio.html?file=" + filename, data);
       };
       // Notify emrun web server that this browser has successfully launched the
       // page. Note that we may need to wait for the server to be ready.
       var tryToSendPageload = () => {
         try {
-          post("^pageload^");
+          post("stdio.html", "^pageload^");
         } catch (e) {
           setTimeout(tryToSendPageload, 50);
         }
@@ -11186,17 +11228,5 @@ if ((!(ENVIRONMENT_IS_PTHREAD))) {
       tryToSendPageload();
     }
   };
-  // POSTs the given binary data represented as a (typed) array data back to the
-  // emrun-based web server.
-  // To use from C code, call e.g:
-  //   EM_ASM({emrun_file_dump("file.dat", HEAPU8.subarray($0, $0 + $1));}, my_data_pointer, my_data_pointer_byte_length);
-  var emrun_file_dump = (filename, data) => {
-    var http = new XMLHttpRequest;
-    out(`Dumping out file "${filename}" with ${data.length} bytes of data.`);
-    http.open("POST", "stdio.html?file=" + filename, true);
-    http.send(data);
-  };
-  if (globalThis.document) {
-    emrun_register_handlers();
-  }
+  emrun_register_handlers();
 }

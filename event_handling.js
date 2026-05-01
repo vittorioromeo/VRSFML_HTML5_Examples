@@ -494,8 +494,9 @@ function exitRuntime() {
   callRuntimeCallbacks(onExits);
   FS.quit();
   TTY.shutdown();
+  clearTimers();
   // End ATEXITS hooks
-  PThread.terminateAllThreads();
+  PThread.terminateRuntime();
   runtimeExited = true;
 }
 
@@ -829,6 +830,8 @@ function exitOnMainThread(returnCode) {
 
 var _exit = exitJS;
 
+var waitAsyncPolyfilled = (!Atomics.waitAsync || (globalThis.navigator?.userAgent && Number((navigator.userAgent.match(/Chrom(e|ium)\/([0-9]+)\./) || [])[2]) < 91));
+
 var PThread = {
   unusedWorkers: [],
   runningWorkers: [],
@@ -856,6 +859,17 @@ var PThread = {
     PThread.unusedWorkers = [];
     PThread.runningWorkers = [];
     PThread.pthreads = {};
+  },
+  terminateRuntime: () => {
+    PThread.terminateAllThreads();
+    var pthread_ptr = _pthread_self();
+    ___set_thread_state(0, 0, 0, 1);
+    if (!waitAsyncPolyfilled) {
+      // Break the waitAsync loop.  Note that checkMailbox will not
+      // re-register since the `___set_thread_state` above causes _pthread_self
+      // to return 0.
+      Atomics.notify((growMemViews(), HEAP32), ((pthread_ptr) >> 2));
+    }
   },
   returnWorkerToPool: worker => {
     // We don't want to run main thread queued calls here, since we are doing
@@ -894,7 +908,7 @@ var PThread = {
         if (targetWorker) {
           targetWorker.postMessage(d, d.transferList);
         } else {
-          err(`Internal error! Worker sent a message "${cmd}" to target pthread ${d.targetThread}, but that thread no longer exists!`);
+          err(`worker sent message (${cmd}) to pthread (${d.targetThread}) that no longer exists`);
         }
         return;
       }
@@ -2171,7 +2185,7 @@ var FS = {
     if (!PATH.isAbs(path)) {
       path = FS.cwd() + "/" + path;
     }
-    // limit max consecutive symlinks to 40 (SYMLOOP_MAX).
+    // limit max consecutive symlinks to SYMLOOP_MAX.
     linkloop: for (var nlinks = 0; nlinks < 40; nlinks++) {
       // split the absolute path
       var parts = path.split("/").filter(p => !!p);
@@ -2454,7 +2468,14 @@ var FS = {
     var arg = setattr ? stream : node;
     setattr ??= node.node_ops.setattr;
     FS.checkOpExists(setattr, 63);
-    setattr(arg, attr);
+    try {
+      setattr(arg, attr);
+    } catch (e) {
+      if (e instanceof RangeError) {
+        throw new FS.ErrnoError(22);
+      }
+      throw e;
+    }
   },
   chrdev_stream_ops: {
     open(stream) {
@@ -3681,6 +3702,7 @@ var FS = {
 };
 
 var SYSCALLS = {
+  currentUmask: 18,
   calculateAt(dirfd, path, allowEmpty) {
     if (PATH.isAbs(path)) {
       return path;
@@ -3789,7 +3811,8 @@ function ___syscall_fcntl64(fd, cmd, varargs) {
      case 4:
       {
         var arg = syscallGetVarargI();
-        stream.flags |= arg;
+        var mask = 289792;
+        stream.flags = (stream.flags & ~mask) | (arg & mask);
         return 0;
       }
 
@@ -4012,6 +4035,9 @@ function ___syscall_openat(dirfd, path, flags, varargs) {
     path = SYSCALLS.getStr(path);
     path = SYSCALLS.calculateAt(dirfd, path);
     var mode = varargs ? syscallGetVarargI() : 0;
+    if (flags & 64) {
+      mode &= ~SYSCALLS.currentUmask;
+    }
     return FS.open(path, flags, mode).fd;
   } catch (e) {
     if (typeof FS == "undefined" || !(e.name === "ErrnoError")) throw e;
@@ -4100,8 +4126,6 @@ var callUserCallback = func => {
   }
 };
 
-var waitAsyncPolyfilled = (!Atomics.waitAsync || (globalThis.navigator?.userAgent && Number((navigator.userAgent.match(/Chrom(e|ium)\/([0-9]+)\./) || [])[2]) < 91));
-
 var __emscripten_thread_mailbox_await = pthread_ptr => {
   if (!waitAsyncPolyfilled) {
     // Wait on the pthread's initial self-pointer field because it is easy and
@@ -4117,23 +4141,23 @@ var __emscripten_thread_mailbox_await = pthread_ptr => {
   }
 };
 
-var checkMailbox = () => callUserCallback(() => {
-  // Only check the mailbox if we have a live pthread runtime. We implement
-  // pthread_self to return 0 if there is no live runtime.
-  // TODO(https://github.com/emscripten-core/emscripten/issues/25076):
-  // Is this check still needed?  `callUserCallback` is supposed to
-  // ensure the runtime is alive, and if `_pthread_self` is NULL then the
-  // runtime certainly is *not* alive, so this should be a redundant check.
+var checkMailbox = () => {
+  // checkMailbox can be called after the pthread has shut down. See
+  // Pthread.terminateRuntime().
+  // In this case we return silently without re-registering using waitAsync.
+  // Perhaps there is a more universal way we can detect runtime has exited.
+  // TODO(https://github.com/emscripten-core/emscripten/issues/25076)
   var pthread_ptr = _pthread_self();
-  if (pthread_ptr) {
+  if (!pthread_ptr) return;
+  callUserCallback(() => {
     // If we are using Atomics.waitAsync as our notification mechanism, wait
     // for a notification before processing the mailbox to avoid missing any
     // work that could otherwise arrive after we've finished processing the
     // mailbox and before we're ready for the next notification.
     __emscripten_thread_mailbox_await(pthread_ptr);
     __emscripten_check_mailbox();
-  }
-});
+  });
+};
 
 var __emscripten_notify_mailbox_postmessage = (targetThread, currThreadId) => {
   if (targetThread == currThreadId) {
@@ -4256,6 +4280,12 @@ function __munmap_js(addr, len, prot, flags, fd, offset) {
 }
 
 var timers = {};
+
+var clearTimers = () => {
+  for (var t of Object.values(timers)) {
+    clearTimeout(t.id);
+  }
+};
 
 var _emscripten_get_now = () => performance.timeOrigin + performance.now();
 
@@ -4686,13 +4716,8 @@ var Browser = {
     // in the coordinates.
     var canvas = Browser.getCanvas();
     var rect = canvas.getBoundingClientRect();
-    // Neither .scrollX or .pageXOffset are defined in a spec, but
-    // we prefer .scrollX because it is currently in a spec draft.
-    // (see: http://www.w3.org/TR/2013/WD-cssom-view-20131217/)
-    var scrollX = ((typeof window.scrollX != "undefined") ? window.scrollX : window.pageXOffset);
-    var scrollY = ((typeof window.scrollY != "undefined") ? window.scrollY : window.pageYOffset);
-    var adjustedX = pageX - (scrollX + rect.left);
-    var adjustedY = pageY - (scrollY + rect.top);
+    var adjustedX = pageX - (window.scrollX + rect.left);
+    var adjustedY = pageY - (window.scrollY + rect.top);
     // the canvas might be CSS-scaled compared to its backbuffer;
     // SDL-using content will want mouse coordinates in terms
     // of backbuffer units.
@@ -8179,7 +8204,8 @@ function preprocess_c_code(code, defs = {}) {
           var kind2 = classifyChar(str, j);
           if (kind2 != 2 && kind2 != 3) {
             var symbol = str.substring(i, j);
-            if (Object.hasOwn(defs, symbol)) {
+            // Firefox only introduced Object.hasOwn() in Firefox 92.
+            if (defs.hasOwnProperty(symbol)) {
               var pp = defs[symbol], expanded;
               if (typeof pp == "function") {
                 // definition is a function?
@@ -9466,7 +9492,6 @@ var getExecutableName = () => thisProgram || "./this.program";
 var getEnvStrings = () => {
   if (!getEnvStrings.strings) {
     // Default values.
-    // Browser language detection #8751
     var lang = (globalThis.navigator?.language ?? "C").replace("-", "_") + ".UTF-8";
     var env = {
       "USER": "web_user",
@@ -9565,7 +9590,7 @@ function _fd_seek(fd, offset, whence, newOffset) {
   if (ENVIRONMENT_IS_PTHREAD) return proxyToMainThread(57, 0, 1, fd, offset, whence, newOffset);
   offset = bigintToI53Checked(offset);
   try {
-    if (isNaN(offset)) return 61;
+    if (isNaN(offset)) return 22;
     var stream = SYSCALLS.getStreamFromFD(fd);
     FS.llseek(stream, offset, whence);
     (growMemViews(), HEAP64)[((newOffset) >> 3)] = BigInt(stream.position);
@@ -10667,7 +10692,7 @@ var ASM_CONSTS = {
 };
 
 // Imports from the Wasm binary.
-var _main, _malloc, _fflush, _free, _SDL_free, _SDL_malloc, _SDL_calloc, _Emscripten_force_free, _SDL_realloc, _Emscripten_HandlePointerEnter, _Emscripten_HandlePointerLeave, _Emscripten_HandlePointerGeneric, _Emscripten_HandleMouseButtonUpGlobal, _Emscripten_SendDragEvent, _Emscripten_SendDragCompleteEvent, _Emscripten_SendDragTextEvent, _Emscripten_SendDragFileEvent, _Emscripten_HandleLockKeysCheck, _Emscripten_SendSystemThemeChangedEvent, _requestFullscreenThroughSDL, __emscripten_tls_init, _pthread_self, _emscripten_builtin_memalign, __emscripten_run_callback_on_thread, ___funcs_on_exit, __emscripten_thread_init, __emscripten_thread_crashed, __emscripten_run_js_on_main_thread_done, __emscripten_run_js_on_main_thread, __emscripten_thread_free_data, __emscripten_thread_exit, __emscripten_timeout, __emscripten_check_mailbox, _setThrew, _emscripten_stack_set_limits, __emscripten_stack_restore, __emscripten_stack_alloc, _emscripten_stack_get_current, dynCall_vii, dynCall_viiii, dynCall_iii, dynCall_iiii, dynCall_viii, dynCall_iiiii, dynCall_vi, dynCall_ii, dynCall_jiji, dynCall_ji, dynCall_iiiiii, dynCall_viiiii, dynCall_viiiiii, dynCall_i, dynCall_v, dynCall_iiiiiii, dynCall_vffff, dynCall_vf, dynCall_viiiiiiii, dynCall_viiiiiiiii, dynCall_vff, dynCall_viiiiiii, dynCall_vfi, dynCall_viif, dynCall_vif, dynCall_viff, dynCall_vifff, dynCall_viffff, dynCall_vfff, dynCall_viiiiiiiiii, dynCall_viiiiiiiiiii, dynCall_viifi, dynCall_iiij, dynCall_viij, dynCall_iidiiii, dynCall_iiiiiiiiii, dynCall_iiiiiiii, dynCall_viijii, dynCall_iiiiiiiii, dynCall_iiiiij, dynCall_iiiiid, dynCall_iiiiijj, dynCall_iiiiiijj, _asyncify_start_unwind, _asyncify_stop_unwind, _asyncify_start_rewind, _asyncify_stop_rewind, __indirect_function_table, wasmTable;
+var _main, _malloc, _fflush, _free, _SDL_free, _SDL_malloc, _SDL_calloc, _Emscripten_force_free, _SDL_realloc, _Emscripten_HandlePointerEnter, _Emscripten_HandlePointerLeave, _Emscripten_HandlePointerGeneric, _Emscripten_HandleMouseButtonUpGlobal, _Emscripten_SendDragEvent, _Emscripten_SendDragCompleteEvent, _Emscripten_SendDragTextEvent, _Emscripten_SendDragFileEvent, _Emscripten_HandleLockKeysCheck, _Emscripten_SendSystemThemeChangedEvent, _requestFullscreenThroughSDL, __emscripten_tls_init, _pthread_self, _emscripten_builtin_memalign, __emscripten_run_callback_on_thread, ___funcs_on_exit, __emscripten_thread_init, ___set_thread_state, __emscripten_thread_crashed, __emscripten_run_js_on_main_thread_done, __emscripten_run_js_on_main_thread, __emscripten_thread_free_data, __emscripten_thread_exit, __emscripten_timeout, __emscripten_check_mailbox, _setThrew, _emscripten_stack_set_limits, __emscripten_stack_restore, __emscripten_stack_alloc, _emscripten_stack_get_current, dynCall_vii, dynCall_viiii, dynCall_iii, dynCall_iiii, dynCall_viii, dynCall_iiiii, dynCall_vi, dynCall_ii, dynCall_jiji, dynCall_ji, dynCall_iiiiii, dynCall_viiiii, dynCall_viiiiii, dynCall_i, dynCall_v, dynCall_iiiiiii, dynCall_vffff, dynCall_vf, dynCall_viiiiiiii, dynCall_viiiiiiiii, dynCall_vff, dynCall_viiiiiii, dynCall_vfi, dynCall_viif, dynCall_vif, dynCall_viff, dynCall_vifff, dynCall_viffff, dynCall_vfff, dynCall_viiiiiiiiii, dynCall_viiiiiiiiiii, dynCall_viifi, dynCall_iiij, dynCall_viij, dynCall_iidiiii, dynCall_iiiiiiiiii, dynCall_iiiiiiii, dynCall_viijii, dynCall_iiiiiiiii, dynCall_iiiiij, dynCall_iiiiid, dynCall_iiiiijj, dynCall_iiiiiijj, _asyncify_start_unwind, _asyncify_stop_unwind, _asyncify_start_rewind, _asyncify_stop_rewind, __indirect_function_table, wasmTable;
 
 function assignWasmExports(wasmExports) {
   _main = Module["_main"] = wasmExports["main"];
@@ -10696,6 +10721,7 @@ function assignWasmExports(wasmExports) {
   __emscripten_run_callback_on_thread = wasmExports["_emscripten_run_callback_on_thread"];
   ___funcs_on_exit = wasmExports["__funcs_on_exit"];
   __emscripten_thread_init = wasmExports["_emscripten_thread_init"];
+  ___set_thread_state = wasmExports["__set_thread_state"];
   __emscripten_thread_crashed = wasmExports["_emscripten_thread_crashed"];
   __emscripten_run_js_on_main_thread_done = wasmExports["_emscripten_run_js_on_main_thread_done"];
   __emscripten_run_js_on_main_thread = wasmExports["_emscripten_run_js_on_main_thread"];
@@ -11227,7 +11253,16 @@ if ((!(ENVIRONMENT_IS_PTHREAD))) {
  *
  * This file gets implicitly injected as a `--post-js` file when
  * emcc is run with `--emrun`
- */ if (globalThis.window && (typeof ENVIRONMENT_IS_PTHREAD == "undefined" || !ENVIRONMENT_IS_PTHREAD)) {
+ */ // POSTs the given binary data represented as a (typed) array data back to the
+// emrun-based web server.
+// To use from C code, call e.g:
+//   EM_ASM({emrun_file_dump("file.dat", HEAPU8.subarray($0, $0 + $1));}, my_data_pointer, my_data_pointer_byte_length);
+// Note: this functions does nothing by default but gets redefined below
+// in `emrun_register_handlers` when emrun is active, along with `out` and
+// `err`.
+var emrun_file_dump = (filename, data) => {};
+
+if (globalThis.window && globalThis.document && (typeof ENVIRONMENT_IS_PTHREAD == "undefined" || !ENVIRONMENT_IS_PTHREAD)) {
   var emrun_register_handlers = () => {
     // When C code exit()s, we may still have remaining stdout and stderr
     // messages in flight. In that case, we can't close the browser until all
@@ -11249,7 +11284,7 @@ if ((!(ENVIRONMENT_IS_PTHREAD))) {
         window.close();
       } catch (e) {}
     };
-    var post = msg => {
+    var post = (url, msg) => {
       var http = new XMLHttpRequest;
       ++emrun_num_post_messages_in_flight;
       http.onreadystatechange = () => {
@@ -11259,7 +11294,7 @@ if ((!(ENVIRONMENT_IS_PTHREAD))) {
           }
         }
       };
-      http.open("POST", "stdio.html", true);
+      http.open("POST", url, true);
       http.send(msg);
     };
     // If the address contains localhost, or we are running the page from port
@@ -11277,18 +11312,25 @@ if ((!(ENVIRONMENT_IS_PTHREAD))) {
         }
       });
       out = text => {
-        post("^out^" + (emrun_http_sequence_number++) + "^" + encodeURIComponent(text));
+        post("stdio.html", "^out^" + (emrun_http_sequence_number++) + "^" + encodeURIComponent(text));
         prevPrint(text);
       };
       err = text => {
-        post("^err^" + (emrun_http_sequence_number++) + "^" + encodeURIComponent(text));
+        post("stdio.html", "^err^" + (emrun_http_sequence_number++) + "^" + encodeURIComponent(text));
         prevErr(text);
+      };
+      emrun_file_dump = (filename, data) => {
+        out(`Dumping out file "${filename}" with ${data.length} bytes of data.`);
+        if (ArrayBuffer.isView(data) && typeof SharedArrayBuffer !== "undefined" && data.buffer instanceof SharedArrayBuffer) {
+          data = new data.constructor(data);
+        }
+        post("stdio.html?file=" + filename, data);
       };
       // Notify emrun web server that this browser has successfully launched the
       // page. Note that we may need to wait for the server to be ready.
       var tryToSendPageload = () => {
         try {
-          post("^pageload^");
+          post("stdio.html", "^pageload^");
         } catch (e) {
           setTimeout(tryToSendPageload, 50);
         }
@@ -11296,17 +11338,5 @@ if ((!(ENVIRONMENT_IS_PTHREAD))) {
       tryToSendPageload();
     }
   };
-  // POSTs the given binary data represented as a (typed) array data back to the
-  // emrun-based web server.
-  // To use from C code, call e.g:
-  //   EM_ASM({emrun_file_dump("file.dat", HEAPU8.subarray($0, $0 + $1));}, my_data_pointer, my_data_pointer_byte_length);
-  var emrun_file_dump = (filename, data) => {
-    var http = new XMLHttpRequest;
-    out(`Dumping out file "${filename}" with ${data.length} bytes of data.`);
-    http.open("POST", "stdio.html?file=" + filename, true);
-    http.send(data);
-  };
-  if (globalThis.document) {
-    emrun_register_handlers();
-  }
+  emrun_register_handlers();
 }
