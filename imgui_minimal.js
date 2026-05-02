@@ -9873,7 +9873,7 @@ Module["FS_createLazyFile"] = FS_createLazyFile;
 var proxiedFunctionTable = [ _proc_exit, exitOnMainThread, ___syscall_fcntl64, ___syscall_fdatasync, ___syscall_fstat64, ___syscall_ioctl, ___syscall_lstat64, ___syscall_newfstatat, ___syscall_openat, ___syscall_stat64, __setitimer_js, _eglChooseConfig, _eglCreateContext, _eglCreateWindowSurface, _eglDestroySurface, _eglGetConfigAttrib, _eglGetCurrentContext, _eglGetDisplay, _eglInitialize, _eglMakeCurrent, _eglSwapBuffers, _emscripten_exit_fullscreen, getCanvasSizeMainThread, setCanvasElementSizeMainThread, _emscripten_exit_pointerlock, _emscripten_get_device_pixel_ratio, _emscripten_get_element_css_size, _emscripten_get_fullscreen_status, _emscripten_get_gamepad_status, _emscripten_get_num_gamepads, _emscripten_get_screen_size, _emscripten_request_fullscreen_strategy, _emscripten_request_pointerlock, _emscripten_sample_gamepad_data, _emscripten_set_beforeunload_callback_on_thread, _emscripten_set_blur_callback_on_thread, _emscripten_set_element_css_size, _emscripten_set_focus_callback_on_thread, _emscripten_set_fullscreenchange_callback_on_thread, _emscripten_set_gamepadconnected_callback_on_thread, _emscripten_set_gamepaddisconnected_callback_on_thread, _emscripten_set_keydown_callback_on_thread, _emscripten_set_keypress_callback_on_thread, _emscripten_set_keyup_callback_on_thread, _emscripten_set_orientationchange_callback_on_thread, _emscripten_set_pointerlockchange_callback_on_thread, _emscripten_set_resize_callback_on_thread, _emscripten_set_visibilitychange_callback_on_thread, _emscripten_set_wheel_callback_on_thread, _emscripten_set_window_title, _environ_get, _environ_sizes_get, _fd_close, _fd_read, _fd_seek, _fd_write ];
 
 var ASM_CONSTS = {
-  521400: () => {
+  521480: () => {
     if (typeof (Module["SDL3"]) === "undefined") {
       Module["SDL3"] = {};
     }
@@ -9889,7 +9889,7 @@ var ASM_CONSTS = {
       };
     }
   },
-  521714: $0 => {
+  521794: $0 => {
     let gamepad = navigator["getGamepads"]()[$0];
     if (!gamepad) {
       return 0;
@@ -9905,7 +9905,7 @@ var ASM_CONSTS = {
     }
     return 0;
   },
-  522179: $0 => {
+  522259: $0 => {
     let gamepad = navigator["getGamepads"]()[$0];
     if (!gamepad) {
       return 0;
@@ -9921,42 +9921,47 @@ var ASM_CONSTS = {
     }
     return 0;
   },
-  522651: $0 => {
+  522731: $0 => {
     let gamepad = navigator["getGamepads"]()[$0];
     if (!gamepad) {
       return 0;
     }
     return gamepad["id"]["toLowerCase"]()["indexOf"]("xinput") >= 0;
   },
-  522794: $0 => {
-    let gamepads = navigator["getGamepads"]();
-    if (!gamepads) {
-      return 0;
+  522874: () => {
+    const os = ([ "Android", "Linux", "iPhone", "Macintosh", "Windows" ]);
+    const ua = navigator["userAgent"];
+    for (let i = 0; i < os.length; i++) {
+      if (ua["indexOf"](os[i]) >= 0) {
+        return i + 1;
+      }
     }
-    let gamepad = gamepads[$0];
-    if (!gamepad || !gamepad["vibrationActuator"]) {
-      return 0;
-    }
-    return 1;
+    return 0;
   },
-  522969: ($0, $1, $2) => {
-    let gamepads = navigator["getGamepads"]();
-    if (!gamepads) {
-      return 0;
-    }
-    let gamepad = gamepads[$0];
-    if (!gamepad || !gamepad["vibrationActuator"]) {
-      return 0;
+  523084: $0 => {
+    let gamepad = navigator["getGamepads"]()[$0];
+    return gamepad && gamepad["vibrationActuator"] && gamepad["vibrationActuator"]["effects"]["includes"]("dual-rumble");
+  },
+  523252: $0 => {
+    let gamepad = navigator["getGamepads"]()[$0];
+    return gamepad && gamepad["vibrationActuator"] && gamepad["vibrationActuator"]["effects"]["includes"]("trigger-rumble");
+  },
+  523423: ($0, $1, $2, $3, $4) => {
+    let gamepad = navigator["getGamepads"]()[$0];
+    if (!gamepad) {
+      return false;
     }
     gamepad["vibrationActuator"]["playEffect"]("dual-rumble", {
       "startDelay": 0,
       "duration": 3e3,
-      "weakMagnitude": $2 / 65535,
-      "strongMagnitude": $1 / 65535
+      "weakMagnitude": $1 / 65535,
+      "strongMagnitude": $2 / 65535,
+      "leftTrigger": $3 / 65535,
+      "rightTrigger": $4 / 65535
     });
-    return 1;
+    return true;
   },
-  523305: $0 => {
+  523736: $0 => {
     try {
       var id = UTF8ToString($0);
       var canvas = document.querySelector(id);
@@ -9968,7 +9973,7 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  523483: ($0, $1, $2, $3) => {
+  523914: ($0, $1, $2, $3) => {
     var w = $0;
     var h = $1;
     var pixels = $2;
@@ -10010,7 +10015,7 @@ var ASM_CONSTS = {
     window_data.ctx.putImageData(window_data.image, 0, 0);
     return true;
   },
-  524561: () => {
+  524992: () => {
     var SDL3 = Module["SDL3"];
     SDL3["mouse_x"] = 0;
     SDL3["mouse_y"] = 0;
@@ -10036,7 +10041,7 @@ var ASM_CONSTS = {
       }
     });
   },
-  525249: ($0, $1, $2, $3, $4) => {
+  525680: ($0, $1, $2, $3, $4) => {
     var w = $0;
     var h = $1;
     var hot_x = $2;
@@ -10057,20 +10062,20 @@ var ASM_CONSTS = {
     stringToUTF8(url, urlBuf, url.length + 1);
     return urlBuf;
   },
-  525907: $0 => {
+  526338: $0 => {
     if (Module["canvas"]) {
       Module["canvas"].style["cursor"] = UTF8ToString($0);
     }
   },
-  525990: () => {
+  526421: () => {
     if (Module["canvas"]) {
       Module["canvas"].style["cursor"] = "none";
     }
   },
-  526059: () => Module["SDL3"]["mouse_x"],
-  526097: () => Module["SDL3"]["mouse_y"],
-  526135: $0 => Module["SDL3"]["mouse_buttons"][$0],
-  526183: $0 => {
+  526490: () => Module["SDL3"]["mouse_x"],
+  526528: () => Module["SDL3"]["mouse_y"],
+  526566: $0 => Module["SDL3"]["mouse_buttons"][$0],
+  526614: $0 => {
     var data = $0;
     document.sdlEventHandlerLockKeysCheck = function(event) {
       if ((event.key != "CapsLock") && (event.key != "NumLock") && (event.key != "ScrollLock")) {
@@ -10079,10 +10084,10 @@ var ASM_CONSTS = {
     };
     document.addEventListener("keydown", document.sdlEventHandlerLockKeysCheck);
   },
-  526610: () => {
+  527041: () => {
     document.removeEventListener("keydown", document.sdlEventHandlerLockKeysCheck);
   },
-  526694: $0 => {
+  527125: $0 => {
     var target = document;
     if (target) {
       target.sdlEventHandlerMouseButtonUpGlobal = function(event) {
@@ -10096,7 +10101,7 @@ var ASM_CONSTS = {
       target.addEventListener("pointerup", target.sdlEventHandlerMouseButtonUpGlobal);
     }
   },
-  527055: $0 => {
+  527486: $0 => {
     var SDL3 = Module["SDL3"];
     if (SDL3.makePointerEventCStruct === undefined) {
       SDL3.makePointerEventCStruct = function(left, top, event) {
@@ -10134,7 +10139,7 @@ var ASM_CONSTS = {
       };
     }
   },
-  528047: $0 => {
+  528478: $0 => {
     var id = UTF8ToString($0);
     try {
       var canvas = document.querySelector(id);
@@ -10144,23 +10149,23 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  528213: () => document.hasFocus(),
-  528245: () => {
+  528644: () => document.hasFocus(),
+  528676: () => {
     var target = document;
     if (target) {
       target.removeEventListener("pointerup", target.sdlEventHandlerMouseButtonUpGlobal);
       target.sdlEventHandlerMouseButtonUpGlobal = undefined;
     }
   },
-  528427: () => document.body.clientWidth,
-  528465: () => document.body.clientHeight,
-  528504: () => window.innerWidth,
-  528534: () => window.innerHeight,
-  528565: () => window.outerWidth,
-  528595: () => window.outerHeight,
-  528626: () => window.pageXOffset,
-  528657: () => window.pageYOffset,
-  528688: ($0, $1) => {
+  528858: () => document.body.clientWidth,
+  528896: () => document.body.clientHeight,
+  528935: () => window.innerWidth,
+  528965: () => window.innerHeight,
+  528996: () => window.outerWidth,
+  529026: () => window.outerHeight,
+  529057: () => window.pageXOffset,
+  529088: () => window.pageYOffset,
+  529119: ($0, $1) => {
     var target = document.querySelector(UTF8ToString($1));
     if (target) {
       var SDL3 = Module["SDL3"];
@@ -10198,7 +10203,7 @@ var ASM_CONSTS = {
       target.addEventListener("pointerup", target.sdlEventHandlerPointerGeneric);
     }
   },
-  530076: ($0, $1, $2) => {
+  530507: ($0, $1, $2) => {
     var id = UTF8ToString($1);
     var target = document.querySelector(id);
     if (target) {
@@ -10287,7 +10292,7 @@ var ASM_CONSTS = {
       target.addEventListener("dragleave", window_data.eventHandlerDropDragend);
     }
   },
-  532700: $0 => {
+  533131: $0 => {
     var id = UTF8ToString($0);
     var target = document.querySelector(id);
     if (target) {
@@ -10324,7 +10329,7 @@ var ASM_CONSTS = {
       window_data.eventHandlerDropDragend = undefined;
     }
   },
-  533770: $0 => {
+  534201: $0 => {
     var target = document.querySelector(UTF8ToString($0));
     if (target) {
       target.removeEventListener("pointerenter", target.sdlEventHandlerPointerEnter);
@@ -10339,7 +10344,7 @@ var ASM_CONSTS = {
       target.sdlEventHandlerPointerGeneric = undefined;
     }
   },
-  534504: () => {
+  534935: () => {
     if (!window.matchMedia) {
       return -1;
     }
@@ -10351,7 +10356,7 @@ var ASM_CONSTS = {
     }
     return -1;
   },
-  534713: () => {
+  535144: () => {
     if (typeof (Module["SDL3"]) !== "undefined") {
       var SDL3 = Module["SDL3"];
       SDL3.themeChangedMatchMedia.removeEventListener("change", SDL3.eventHandlerThemeChanged);
@@ -10359,14 +10364,14 @@ var ASM_CONSTS = {
       SDL3.eventHandlerThemeChanged = undefined;
     }
   },
-  534966: () => window.innerWidth,
-  534996: () => window.innerHeight,
-  535027: $0 => {
+  535397: () => window.innerWidth,
+  535427: () => window.innerHeight,
+  535458: $0 => {
     Module["requestFullscreen"] = function(lockPointer, resizeCanvas) {
       _requestFullscreenThroughSDL($0);
     };
   },
-  535136: ($0, $1, $2) => {
+  535567: ($0, $1, $2) => {
     try {
       var id = UTF8ToString($0);
       var x = $1;
@@ -10380,7 +10385,7 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  535418: ($0, $1) => {
+  535849: ($0, $1) => {
     var id = UTF8ToString($0);
     var display = UTF8ToString($1);
     try {
@@ -10390,7 +10395,7 @@ var ASM_CONSTS = {
       }
     } catch (e) {}
   },
-  535591: ($0, $1) => {
+  536022: ($0, $1) => {
     var pngData = (growMemViews(), HEAPU8).buffer instanceof ArrayBuffer ? (growMemViews(), 
     HEAPU8).subarray($0, $0 + $1) : (growMemViews(), HEAPU8).slice($0, $0 + $1);
     var blob = new Blob([ pngData ], {
@@ -10409,12 +10414,12 @@ var ASM_CONSTS = {
     }
     link.href = url;
   },
-  536084: () => {
+  536515: () => {
     Module["requestFullscreen"] = function(lockPointer, resizeCanvas) {};
   },
-  536158: ($0, $1) => {
+  536589: ($0, $1) => {
     var id = UTF8ToString($0);
-    var array = new Uint32Array(Module.HEAPU32.buffer, $1, 4);
+    var array = new Uint32Array(Module["HEAPU32"].buffer, $1, 4);
     try {
       let canvas = document.querySelector(id);
       if (canvas) {
@@ -10428,7 +10433,7 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  536481: $0 => {
+  536915: $0 => {
     var id = UTF8ToString($0);
     try {
       var element = document.querySelector(id);
@@ -10438,18 +10443,18 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  536659: $0 => {
+  537093: $0 => {
     var w = $0;
     return window.innerWidth / 2 - w / 2;
   },
-  536713: $0 => {
+  537147: $0 => {
     var h = $0;
     return window.innerHeight / 2 - h / 2;
   },
-  536768: ($0, $1, $2) => {
+  537202: ($0, $1, $2) => {
     try {
       var id = UTF8ToString($0);
-      var rect = new Int32Array(Module.HEAP32.buffer, $1, 4);
+      var rect = new Int32Array(Module["HEAP32"].buffer, $1, 4);
       var parent_id = UTF8ToString($2);
       var canvas = document.querySelector(id);
       if (canvas) {
@@ -10476,9 +10481,9 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  537493: () => window.innerWidth,
-  537523: () => window.innerHeight,
-  537554: $0 => {
+  537930: () => window.innerWidth,
+  537960: () => window.innerHeight,
+  537991: $0 => {
     var canvas = document.querySelector(UTF8ToString($0));
     canvas.SDL3_original_position = canvas.style.position;
     canvas.SDL3_original_top = canvas.style.top;
@@ -10499,7 +10504,7 @@ var ASM_CONSTS = {
     canvas.style.top = "0";
     canvas.style.left = "0";
   },
-  538252: () => {
+  538689: () => {
     var div = document.getElementById("SDL3_fill_document_background_elements");
     if (div) {
       if (div.SDL3_canvas_nextsib) {
@@ -10516,7 +10521,7 @@ var ASM_CONSTS = {
       div.remove();
     }
   },
-  538811: () => {
+  539248: () => {
     if (window.matchMedia) {
       var SDL3 = Module["SDL3"];
       SDL3.eventHandlerThemeChanged = function(event) {
@@ -10526,7 +10531,7 @@ var ASM_CONSTS = {
       SDL3.themeChangedMatchMedia.addEventListener("change", SDL3.eventHandlerThemeChanged);
     }
   },
-  539133: ($0, $1, $2, $3, $4) => {
+  539570: ($0, $1, $2, $3, $4) => {
     var title = UTF8ToString($0);
     var message = UTF8ToString($1);
     var background = UTF8ToString($2);
@@ -10546,7 +10551,7 @@ var ASM_CONSTS = {
     dialog.append(p);
     dialog.showModal();
   },
-  539674: ($0, $1, $2, $3, $4, $5, $6, $7) => {
+  540111: ($0, $1, $2, $3, $4, $5, $6, $7) => {
     var dialog_id = UTF8ToString($0);
     var text = UTF8ToString($1);
     var responseId = $2;
@@ -10587,7 +10592,7 @@ var ASM_CONSTS = {
     dialog.append(button);
     return true;
   },
-  540683: $0 => {
+  541120: $0 => {
     var dialog_id = UTF8ToString($0);
     var dialog = document.getElementById(dialog_id);
     if (!dialog) {
@@ -10595,7 +10600,7 @@ var ASM_CONSTS = {
     }
     return dialog.open;
   },
-  540821: $0 => {
+  541258: $0 => {
     var dialog_id = UTF8ToString($0);
     var dialog = document.getElementById(dialog_id);
     if (!dialog) {
@@ -10607,7 +10612,7 @@ var ASM_CONSTS = {
       return 0;
     }
   },
-  541003: ($0, $1) => {
+  541440: ($0, $1) => {
     alert(UTF8ToString($0) + "\n\n" + UTF8ToString($1));
   }
 };

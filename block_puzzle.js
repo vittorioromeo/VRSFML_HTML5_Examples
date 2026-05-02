@@ -9952,7 +9952,7 @@ Module["FS_createLazyFile"] = FS_createLazyFile;
 var proxiedFunctionTable = [ _proc_exit, exitOnMainThread, ___syscall_fcntl64, ___syscall_fdatasync, ___syscall_fstat64, ___syscall_getcwd, ___syscall_ioctl, ___syscall_lstat64, ___syscall_newfstatat, ___syscall_openat, ___syscall_stat64, __mmap_js, __munmap_js, __setitimer_js, _eglChooseConfig, _eglCreateContext, _eglCreateWindowSurface, _eglDestroySurface, _eglGetConfigAttrib, _eglGetCurrentContext, _eglGetDisplay, _eglInitialize, _eglMakeCurrent, _eglSwapBuffers, _emscripten_exit_fullscreen, getCanvasSizeMainThread, setCanvasElementSizeMainThread, _emscripten_exit_pointerlock, _emscripten_get_device_pixel_ratio, _emscripten_get_element_css_size, _emscripten_get_fullscreen_status, _emscripten_get_gamepad_status, _emscripten_get_num_gamepads, _emscripten_get_screen_size, _emscripten_request_fullscreen_strategy, _emscripten_request_pointerlock, _emscripten_sample_gamepad_data, _emscripten_set_beforeunload_callback_on_thread, _emscripten_set_blur_callback_on_thread, _emscripten_set_element_css_size, _emscripten_set_focus_callback_on_thread, _emscripten_set_fullscreenchange_callback_on_thread, _emscripten_set_gamepadconnected_callback_on_thread, _emscripten_set_gamepaddisconnected_callback_on_thread, _emscripten_set_keydown_callback_on_thread, _emscripten_set_keypress_callback_on_thread, _emscripten_set_keyup_callback_on_thread, _emscripten_set_orientationchange_callback_on_thread, _emscripten_set_pointerlockchange_callback_on_thread, _emscripten_set_resize_callback_on_thread, _emscripten_set_visibilitychange_callback_on_thread, _emscripten_set_wheel_callback_on_thread, _emscripten_set_window_title, _environ_get, _environ_sizes_get, _fd_close, _fd_read, _fd_seek, _fd_write ];
 
 var ASM_CONSTS = {
-  2338412: () => {
+  2338492: () => {
     if (typeof (Module["SDL3"]) === "undefined") {
       Module["SDL3"] = {};
     }
@@ -9968,7 +9968,7 @@ var ASM_CONSTS = {
       };
     }
   },
-  2338726: $0 => {
+  2338806: $0 => {
     let gamepad = navigator["getGamepads"]()[$0];
     if (!gamepad) {
       return 0;
@@ -9984,7 +9984,7 @@ var ASM_CONSTS = {
     }
     return 0;
   },
-  2339191: $0 => {
+  2339271: $0 => {
     let gamepad = navigator["getGamepads"]()[$0];
     if (!gamepad) {
       return 0;
@@ -10000,42 +10000,47 @@ var ASM_CONSTS = {
     }
     return 0;
   },
-  2339663: $0 => {
+  2339743: $0 => {
     let gamepad = navigator["getGamepads"]()[$0];
     if (!gamepad) {
       return 0;
     }
     return gamepad["id"]["toLowerCase"]()["indexOf"]("xinput") >= 0;
   },
-  2339806: $0 => {
-    let gamepads = navigator["getGamepads"]();
-    if (!gamepads) {
-      return 0;
+  2339886: () => {
+    const os = ([ "Android", "Linux", "iPhone", "Macintosh", "Windows" ]);
+    const ua = navigator["userAgent"];
+    for (let i = 0; i < os.length; i++) {
+      if (ua["indexOf"](os[i]) >= 0) {
+        return i + 1;
+      }
     }
-    let gamepad = gamepads[$0];
-    if (!gamepad || !gamepad["vibrationActuator"]) {
-      return 0;
-    }
-    return 1;
+    return 0;
   },
-  2339981: ($0, $1, $2) => {
-    let gamepads = navigator["getGamepads"]();
-    if (!gamepads) {
-      return 0;
-    }
-    let gamepad = gamepads[$0];
-    if (!gamepad || !gamepad["vibrationActuator"]) {
-      return 0;
+  2340096: $0 => {
+    let gamepad = navigator["getGamepads"]()[$0];
+    return gamepad && gamepad["vibrationActuator"] && gamepad["vibrationActuator"]["effects"]["includes"]("dual-rumble");
+  },
+  2340264: $0 => {
+    let gamepad = navigator["getGamepads"]()[$0];
+    return gamepad && gamepad["vibrationActuator"] && gamepad["vibrationActuator"]["effects"]["includes"]("trigger-rumble");
+  },
+  2340435: ($0, $1, $2, $3, $4) => {
+    let gamepad = navigator["getGamepads"]()[$0];
+    if (!gamepad) {
+      return false;
     }
     gamepad["vibrationActuator"]["playEffect"]("dual-rumble", {
       "startDelay": 0,
       "duration": 3e3,
-      "weakMagnitude": $2 / 65535,
-      "strongMagnitude": $1 / 65535
+      "weakMagnitude": $1 / 65535,
+      "strongMagnitude": $2 / 65535,
+      "leftTrigger": $3 / 65535,
+      "rightTrigger": $4 / 65535
     });
-    return 1;
+    return true;
   },
-  2340317: $0 => {
+  2340748: $0 => {
     try {
       var id = UTF8ToString($0);
       var canvas = document.querySelector(id);
@@ -10047,7 +10052,7 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  2340495: ($0, $1, $2, $3) => {
+  2340926: ($0, $1, $2, $3) => {
     var w = $0;
     var h = $1;
     var pixels = $2;
@@ -10089,7 +10094,7 @@ var ASM_CONSTS = {
     window_data.ctx.putImageData(window_data.image, 0, 0);
     return true;
   },
-  2341573: () => {
+  2342004: () => {
     var SDL3 = Module["SDL3"];
     SDL3["mouse_x"] = 0;
     SDL3["mouse_y"] = 0;
@@ -10115,7 +10120,7 @@ var ASM_CONSTS = {
       }
     });
   },
-  2342261: ($0, $1, $2, $3, $4) => {
+  2342692: ($0, $1, $2, $3, $4) => {
     var w = $0;
     var h = $1;
     var hot_x = $2;
@@ -10136,20 +10141,20 @@ var ASM_CONSTS = {
     stringToUTF8(url, urlBuf, url.length + 1);
     return urlBuf;
   },
-  2342919: $0 => {
+  2343350: $0 => {
     if (Module["canvas"]) {
       Module["canvas"].style["cursor"] = UTF8ToString($0);
     }
   },
-  2343002: () => {
+  2343433: () => {
     if (Module["canvas"]) {
       Module["canvas"].style["cursor"] = "none";
     }
   },
-  2343071: () => Module["SDL3"]["mouse_x"],
-  2343109: () => Module["SDL3"]["mouse_y"],
-  2343147: $0 => Module["SDL3"]["mouse_buttons"][$0],
-  2343195: $0 => {
+  2343502: () => Module["SDL3"]["mouse_x"],
+  2343540: () => Module["SDL3"]["mouse_y"],
+  2343578: $0 => Module["SDL3"]["mouse_buttons"][$0],
+  2343626: $0 => {
     var data = $0;
     document.sdlEventHandlerLockKeysCheck = function(event) {
       if ((event.key != "CapsLock") && (event.key != "NumLock") && (event.key != "ScrollLock")) {
@@ -10158,10 +10163,10 @@ var ASM_CONSTS = {
     };
     document.addEventListener("keydown", document.sdlEventHandlerLockKeysCheck);
   },
-  2343622: () => {
+  2344053: () => {
     document.removeEventListener("keydown", document.sdlEventHandlerLockKeysCheck);
   },
-  2343706: $0 => {
+  2344137: $0 => {
     var target = document;
     if (target) {
       target.sdlEventHandlerMouseButtonUpGlobal = function(event) {
@@ -10175,7 +10180,7 @@ var ASM_CONSTS = {
       target.addEventListener("pointerup", target.sdlEventHandlerMouseButtonUpGlobal);
     }
   },
-  2344067: $0 => {
+  2344498: $0 => {
     var SDL3 = Module["SDL3"];
     if (SDL3.makePointerEventCStruct === undefined) {
       SDL3.makePointerEventCStruct = function(left, top, event) {
@@ -10213,7 +10218,7 @@ var ASM_CONSTS = {
       };
     }
   },
-  2345059: $0 => {
+  2345490: $0 => {
     var id = UTF8ToString($0);
     try {
       var canvas = document.querySelector(id);
@@ -10223,23 +10228,23 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  2345225: () => document.hasFocus(),
-  2345257: () => {
+  2345656: () => document.hasFocus(),
+  2345688: () => {
     var target = document;
     if (target) {
       target.removeEventListener("pointerup", target.sdlEventHandlerMouseButtonUpGlobal);
       target.sdlEventHandlerMouseButtonUpGlobal = undefined;
     }
   },
-  2345439: () => document.body.clientWidth,
-  2345477: () => document.body.clientHeight,
-  2345516: () => window.innerWidth,
-  2345546: () => window.innerHeight,
-  2345577: () => window.outerWidth,
-  2345607: () => window.outerHeight,
-  2345638: () => window.pageXOffset,
-  2345669: () => window.pageYOffset,
-  2345700: ($0, $1) => {
+  2345870: () => document.body.clientWidth,
+  2345908: () => document.body.clientHeight,
+  2345947: () => window.innerWidth,
+  2345977: () => window.innerHeight,
+  2346008: () => window.outerWidth,
+  2346038: () => window.outerHeight,
+  2346069: () => window.pageXOffset,
+  2346100: () => window.pageYOffset,
+  2346131: ($0, $1) => {
     var target = document.querySelector(UTF8ToString($1));
     if (target) {
       var SDL3 = Module["SDL3"];
@@ -10277,7 +10282,7 @@ var ASM_CONSTS = {
       target.addEventListener("pointerup", target.sdlEventHandlerPointerGeneric);
     }
   },
-  2347088: ($0, $1, $2) => {
+  2347519: ($0, $1, $2) => {
     var id = UTF8ToString($1);
     var target = document.querySelector(id);
     if (target) {
@@ -10366,7 +10371,7 @@ var ASM_CONSTS = {
       target.addEventListener("dragleave", window_data.eventHandlerDropDragend);
     }
   },
-  2349712: $0 => {
+  2350143: $0 => {
     var id = UTF8ToString($0);
     var target = document.querySelector(id);
     if (target) {
@@ -10403,7 +10408,7 @@ var ASM_CONSTS = {
       window_data.eventHandlerDropDragend = undefined;
     }
   },
-  2350782: $0 => {
+  2351213: $0 => {
     var target = document.querySelector(UTF8ToString($0));
     if (target) {
       target.removeEventListener("pointerenter", target.sdlEventHandlerPointerEnter);
@@ -10418,7 +10423,7 @@ var ASM_CONSTS = {
       target.sdlEventHandlerPointerGeneric = undefined;
     }
   },
-  2351516: () => {
+  2351947: () => {
     if (!window.matchMedia) {
       return -1;
     }
@@ -10430,7 +10435,7 @@ var ASM_CONSTS = {
     }
     return -1;
   },
-  2351725: () => {
+  2352156: () => {
     if (typeof (Module["SDL3"]) !== "undefined") {
       var SDL3 = Module["SDL3"];
       SDL3.themeChangedMatchMedia.removeEventListener("change", SDL3.eventHandlerThemeChanged);
@@ -10438,14 +10443,14 @@ var ASM_CONSTS = {
       SDL3.eventHandlerThemeChanged = undefined;
     }
   },
-  2351978: () => window.innerWidth,
-  2352008: () => window.innerHeight,
-  2352039: $0 => {
+  2352409: () => window.innerWidth,
+  2352439: () => window.innerHeight,
+  2352470: $0 => {
     Module["requestFullscreen"] = function(lockPointer, resizeCanvas) {
       _requestFullscreenThroughSDL($0);
     };
   },
-  2352148: ($0, $1, $2) => {
+  2352579: ($0, $1, $2) => {
     try {
       var id = UTF8ToString($0);
       var x = $1;
@@ -10459,7 +10464,7 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  2352430: ($0, $1) => {
+  2352861: ($0, $1) => {
     var id = UTF8ToString($0);
     var display = UTF8ToString($1);
     try {
@@ -10469,7 +10474,7 @@ var ASM_CONSTS = {
       }
     } catch (e) {}
   },
-  2352603: ($0, $1) => {
+  2353034: ($0, $1) => {
     var pngData = (growMemViews(), HEAPU8).buffer instanceof ArrayBuffer ? (growMemViews(), 
     HEAPU8).subarray($0, $0 + $1) : (growMemViews(), HEAPU8).slice($0, $0 + $1);
     var blob = new Blob([ pngData ], {
@@ -10488,12 +10493,12 @@ var ASM_CONSTS = {
     }
     link.href = url;
   },
-  2353096: () => {
+  2353527: () => {
     Module["requestFullscreen"] = function(lockPointer, resizeCanvas) {};
   },
-  2353170: ($0, $1) => {
+  2353601: ($0, $1) => {
     var id = UTF8ToString($0);
-    var array = new Uint32Array(Module.HEAPU32.buffer, $1, 4);
+    var array = new Uint32Array(Module["HEAPU32"].buffer, $1, 4);
     try {
       let canvas = document.querySelector(id);
       if (canvas) {
@@ -10507,7 +10512,7 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  2353493: $0 => {
+  2353927: $0 => {
     var id = UTF8ToString($0);
     try {
       var element = document.querySelector(id);
@@ -10517,18 +10522,18 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  2353671: $0 => {
+  2354105: $0 => {
     var w = $0;
     return window.innerWidth / 2 - w / 2;
   },
-  2353725: $0 => {
+  2354159: $0 => {
     var h = $0;
     return window.innerHeight / 2 - h / 2;
   },
-  2353780: ($0, $1, $2) => {
+  2354214: ($0, $1, $2) => {
     try {
       var id = UTF8ToString($0);
-      var rect = new Int32Array(Module.HEAP32.buffer, $1, 4);
+      var rect = new Int32Array(Module["HEAP32"].buffer, $1, 4);
       var parent_id = UTF8ToString($2);
       var canvas = document.querySelector(id);
       if (canvas) {
@@ -10555,9 +10560,9 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  2354505: () => window.innerWidth,
-  2354535: () => window.innerHeight,
-  2354566: $0 => {
+  2354942: () => window.innerWidth,
+  2354972: () => window.innerHeight,
+  2355003: $0 => {
     var canvas = document.querySelector(UTF8ToString($0));
     canvas.SDL3_original_position = canvas.style.position;
     canvas.SDL3_original_top = canvas.style.top;
@@ -10578,7 +10583,7 @@ var ASM_CONSTS = {
     canvas.style.top = "0";
     canvas.style.left = "0";
   },
-  2355264: () => {
+  2355701: () => {
     var div = document.getElementById("SDL3_fill_document_background_elements");
     if (div) {
       if (div.SDL3_canvas_nextsib) {
@@ -10595,7 +10600,7 @@ var ASM_CONSTS = {
       div.remove();
     }
   },
-  2355823: () => {
+  2356260: () => {
     if (window.matchMedia) {
       var SDL3 = Module["SDL3"];
       SDL3.eventHandlerThemeChanged = function(event) {
@@ -10605,7 +10610,7 @@ var ASM_CONSTS = {
       SDL3.themeChangedMatchMedia.addEventListener("change", SDL3.eventHandlerThemeChanged);
     }
   },
-  2356145: ($0, $1, $2, $3, $4) => {
+  2356582: ($0, $1, $2, $3, $4) => {
     var title = UTF8ToString($0);
     var message = UTF8ToString($1);
     var background = UTF8ToString($2);
@@ -10625,7 +10630,7 @@ var ASM_CONSTS = {
     dialog.append(p);
     dialog.showModal();
   },
-  2356686: ($0, $1, $2, $3, $4, $5, $6, $7) => {
+  2357123: ($0, $1, $2, $3, $4, $5, $6, $7) => {
     var dialog_id = UTF8ToString($0);
     var text = UTF8ToString($1);
     var responseId = $2;
@@ -10666,7 +10671,7 @@ var ASM_CONSTS = {
     dialog.append(button);
     return true;
   },
-  2357695: $0 => {
+  2358132: $0 => {
     var dialog_id = UTF8ToString($0);
     var dialog = document.getElementById(dialog_id);
     if (!dialog) {
@@ -10674,7 +10679,7 @@ var ASM_CONSTS = {
     }
     return dialog.open;
   },
-  2357833: $0 => {
+  2358270: $0 => {
     var dialog_id = UTF8ToString($0);
     var dialog = document.getElementById(dialog_id);
     if (!dialog) {
@@ -10686,10 +10691,10 @@ var ASM_CONSTS = {
       return 0;
     }
   },
-  2358015: ($0, $1) => {
+  2358452: ($0, $1) => {
     alert(UTF8ToString($0) + "\n\n" + UTF8ToString($1));
   },
-  2358072: ($0, $1, $2, $3, $4) => {
+  2358509: ($0, $1, $2, $3, $4) => {
     if (typeof window === "undefined" || (window.AudioContext || window.webkitAudioContext) === undefined) {
       return 0;
     }
@@ -10761,7 +10766,7 @@ var ASM_CONSTS = {
     window.miniaudio.referenceCount += 1;
     return 1;
   },
-  2360250: () => {
+  2360687: () => {
     if (typeof (window.miniaudio) !== "undefined") {
       window.miniaudio.unlock_event_types.map(function(event_type) {
         document.removeEventListener(event_type, window.miniaudio.unlock, true);
@@ -10772,8 +10777,8 @@ var ASM_CONSTS = {
       }
     }
   },
-  2360554: () => (navigator.mediaDevices !== undefined && navigator.mediaDevices.getUserMedia !== undefined),
-  2360658: () => {
+  2360991: () => (navigator.mediaDevices !== undefined && navigator.mediaDevices.getUserMedia !== undefined),
+  2361095: () => {
     try {
       var temp = new (window.AudioContext || window.webkitAudioContext);
       var sampleRate = temp.sampleRate;
@@ -10783,7 +10788,7 @@ var ASM_CONSTS = {
       return 0;
     }
   },
-  2360829: ($0, $1, $2, $3, $4, $5) => {
+  2361266: ($0, $1, $2, $3, $4, $5) => {
     var deviceType = $0;
     var channels = $1;
     var sampleRate = $2;
@@ -10854,8 +10859,8 @@ var ASM_CONSTS = {
     device.pDevice = pDevice;
     return window.miniaudio.track_device(device);
   },
-  2363706: $0 => window.miniaudio.get_device_by_index($0).webaudio.sampleRate,
-  2363779: $0 => {
+  2364143: $0 => window.miniaudio.get_device_by_index($0).webaudio.sampleRate,
+  2364216: $0 => {
     var device = window.miniaudio.get_device_by_index($0);
     if (device.scriptNode !== undefined) {
       device.scriptNode.onaudioprocess = function(e) {};
@@ -10870,15 +10875,15 @@ var ASM_CONSTS = {
     device.webaudio = undefined;
     device.pDevice = undefined;
   },
-  2364179: $0 => {
+  2364616: $0 => {
     window.miniaudio.untrack_device_by_index($0);
   },
-  2364229: $0 => {
+  2364666: $0 => {
     var device = window.miniaudio.get_device_by_index($0);
     device.webaudio.resume();
     device.state = window.miniaudio.device_state.started;
   },
-  2364368: $0 => {
+  2364805: $0 => {
     var device = window.miniaudio.get_device_by_index($0);
     device.webaudio.suspend();
     device.state = window.miniaudio.device_state.stopped;
