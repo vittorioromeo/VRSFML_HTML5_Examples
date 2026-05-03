@@ -9903,7 +9903,7 @@ Module["FS_createLazyFile"] = FS_createLazyFile;
 var proxiedFunctionTable = [ _proc_exit, exitOnMainThread, ___syscall_fcntl64, ___syscall_fdatasync, ___syscall_fstat64, ___syscall_getcwd, ___syscall_ioctl, ___syscall_lstat64, ___syscall_newfstatat, ___syscall_openat, ___syscall_stat64, __setitimer_js, _eglChooseConfig, _eglCreateContext, _eglCreateWindowSurface, _eglDestroySurface, _eglGetConfigAttrib, _eglGetCurrentContext, _eglGetDisplay, _eglInitialize, _eglMakeCurrent, _eglSwapBuffers, _emscripten_exit_fullscreen, getCanvasSizeMainThread, setCanvasElementSizeMainThread, _emscripten_exit_pointerlock, _emscripten_get_device_pixel_ratio, _emscripten_get_element_css_size, _emscripten_get_fullscreen_status, _emscripten_get_gamepad_status, _emscripten_get_num_gamepads, _emscripten_get_screen_size, _emscripten_request_fullscreen_strategy, _emscripten_request_pointerlock, _emscripten_sample_gamepad_data, _emscripten_set_beforeunload_callback_on_thread, _emscripten_set_blur_callback_on_thread, _emscripten_set_element_css_size, _emscripten_set_focus_callback_on_thread, _emscripten_set_fullscreenchange_callback_on_thread, _emscripten_set_gamepadconnected_callback_on_thread, _emscripten_set_gamepaddisconnected_callback_on_thread, _emscripten_set_keydown_callback_on_thread, _emscripten_set_keypress_callback_on_thread, _emscripten_set_keyup_callback_on_thread, _emscripten_set_orientationchange_callback_on_thread, _emscripten_set_pointerlockchange_callback_on_thread, _emscripten_set_resize_callback_on_thread, _emscripten_set_visibilitychange_callback_on_thread, _emscripten_set_wheel_callback_on_thread, _emscripten_set_window_title, _environ_get, _environ_sizes_get, _fd_close, _fd_read, _fd_seek, _fd_write ];
 
 var ASM_CONSTS = {
-  885860: () => {
+  885876: () => {
     if (typeof (Module["SDL3"]) === "undefined") {
       Module["SDL3"] = {};
     }
@@ -9919,7 +9919,7 @@ var ASM_CONSTS = {
       };
     }
   },
-  886174: $0 => {
+  886190: $0 => {
     let gamepad = navigator["getGamepads"]()[$0];
     if (!gamepad) {
       return 0;
@@ -9935,7 +9935,7 @@ var ASM_CONSTS = {
     }
     return 0;
   },
-  886639: $0 => {
+  886655: $0 => {
     let gamepad = navigator["getGamepads"]()[$0];
     if (!gamepad) {
       return 0;
@@ -9951,14 +9951,14 @@ var ASM_CONSTS = {
     }
     return 0;
   },
-  887111: $0 => {
+  887127: $0 => {
     let gamepad = navigator["getGamepads"]()[$0];
     if (!gamepad) {
       return 0;
     }
     return gamepad["id"]["toLowerCase"]()["indexOf"]("xinput") >= 0;
   },
-  887254: () => {
+  887270: () => {
     const os = ([ "Android", "Linux", "iPhone", "Macintosh", "Windows" ]);
     const ua = navigator["userAgent"];
     for (let i = 0; i < os.length; i++) {
@@ -9968,15 +9968,15 @@ var ASM_CONSTS = {
     }
     return 0;
   },
-  887464: $0 => {
+  887480: $0 => {
     let gamepad = navigator["getGamepads"]()[$0];
     return gamepad && gamepad["vibrationActuator"] && gamepad["vibrationActuator"]["effects"]["includes"]("dual-rumble");
   },
-  887632: $0 => {
+  887648: $0 => {
     let gamepad = navigator["getGamepads"]()[$0];
     return gamepad && gamepad["vibrationActuator"] && gamepad["vibrationActuator"]["effects"]["includes"]("trigger-rumble");
   },
-  887803: ($0, $1, $2, $3, $4) => {
+  887819: ($0, $1, $2, $3, $4) => {
     let gamepad = navigator["getGamepads"]()[$0];
     if (!gamepad) {
       return false;
@@ -9991,7 +9991,7 @@ var ASM_CONSTS = {
     });
     return true;
   },
-  888116: $0 => {
+  888132: $0 => {
     try {
       var id = UTF8ToString($0);
       var canvas = document.querySelector(id);
@@ -10003,7 +10003,7 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  888294: ($0, $1, $2, $3) => {
+  888310: ($0, $1, $2, $3) => {
     var w = $0;
     var h = $1;
     var pixels = $2;
@@ -10045,7 +10045,7 @@ var ASM_CONSTS = {
     window_data.ctx.putImageData(window_data.image, 0, 0);
     return true;
   },
-  889372: () => {
+  889388: () => {
     var SDL3 = Module["SDL3"];
     SDL3["mouse_x"] = 0;
     SDL3["mouse_y"] = 0;
@@ -10071,7 +10071,7 @@ var ASM_CONSTS = {
       }
     });
   },
-  890060: ($0, $1, $2, $3, $4) => {
+  890076: ($0, $1, $2, $3, $4) => {
     var w = $0;
     var h = $1;
     var hot_x = $2;
@@ -10092,20 +10092,20 @@ var ASM_CONSTS = {
     stringToUTF8(url, urlBuf, url.length + 1);
     return urlBuf;
   },
-  890718: $0 => {
+  890734: $0 => {
     if (Module["canvas"]) {
       Module["canvas"].style["cursor"] = UTF8ToString($0);
     }
   },
-  890801: () => {
+  890817: () => {
     if (Module["canvas"]) {
       Module["canvas"].style["cursor"] = "none";
     }
   },
-  890870: () => Module["SDL3"]["mouse_x"],
-  890908: () => Module["SDL3"]["mouse_y"],
-  890946: $0 => Module["SDL3"]["mouse_buttons"][$0],
-  890994: $0 => {
+  890886: () => Module["SDL3"]["mouse_x"],
+  890924: () => Module["SDL3"]["mouse_y"],
+  890962: $0 => Module["SDL3"]["mouse_buttons"][$0],
+  891010: $0 => {
     var data = $0;
     document.sdlEventHandlerLockKeysCheck = function(event) {
       if ((event.key != "CapsLock") && (event.key != "NumLock") && (event.key != "ScrollLock")) {
@@ -10114,10 +10114,10 @@ var ASM_CONSTS = {
     };
     document.addEventListener("keydown", document.sdlEventHandlerLockKeysCheck);
   },
-  891421: () => {
+  891437: () => {
     document.removeEventListener("keydown", document.sdlEventHandlerLockKeysCheck);
   },
-  891505: $0 => {
+  891521: $0 => {
     var target = document;
     if (target) {
       target.sdlEventHandlerMouseButtonUpGlobal = function(event) {
@@ -10131,7 +10131,7 @@ var ASM_CONSTS = {
       target.addEventListener("pointerup", target.sdlEventHandlerMouseButtonUpGlobal);
     }
   },
-  891866: $0 => {
+  891882: $0 => {
     var SDL3 = Module["SDL3"];
     if (SDL3.makePointerEventCStruct === undefined) {
       SDL3.makePointerEventCStruct = function(left, top, event) {
@@ -10169,7 +10169,7 @@ var ASM_CONSTS = {
       };
     }
   },
-  892858: $0 => {
+  892874: $0 => {
     var id = UTF8ToString($0);
     try {
       var canvas = document.querySelector(id);
@@ -10179,23 +10179,23 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  893024: () => document.hasFocus(),
-  893056: () => {
+  893040: () => document.hasFocus(),
+  893072: () => {
     var target = document;
     if (target) {
       target.removeEventListener("pointerup", target.sdlEventHandlerMouseButtonUpGlobal);
       target.sdlEventHandlerMouseButtonUpGlobal = undefined;
     }
   },
-  893238: () => document.body.clientWidth,
-  893276: () => document.body.clientHeight,
-  893315: () => window.innerWidth,
-  893345: () => window.innerHeight,
-  893376: () => window.outerWidth,
-  893406: () => window.outerHeight,
-  893437: () => window.pageXOffset,
-  893468: () => window.pageYOffset,
-  893499: ($0, $1) => {
+  893254: () => document.body.clientWidth,
+  893292: () => document.body.clientHeight,
+  893331: () => window.innerWidth,
+  893361: () => window.innerHeight,
+  893392: () => window.outerWidth,
+  893422: () => window.outerHeight,
+  893453: () => window.pageXOffset,
+  893484: () => window.pageYOffset,
+  893515: ($0, $1) => {
     var target = document.querySelector(UTF8ToString($1));
     if (target) {
       var SDL3 = Module["SDL3"];
@@ -10233,7 +10233,7 @@ var ASM_CONSTS = {
       target.addEventListener("pointerup", target.sdlEventHandlerPointerGeneric);
     }
   },
-  894887: ($0, $1, $2) => {
+  894903: ($0, $1, $2) => {
     var id = UTF8ToString($1);
     var target = document.querySelector(id);
     if (target) {
@@ -10322,7 +10322,7 @@ var ASM_CONSTS = {
       target.addEventListener("dragleave", window_data.eventHandlerDropDragend);
     }
   },
-  897511: $0 => {
+  897527: $0 => {
     var id = UTF8ToString($0);
     var target = document.querySelector(id);
     if (target) {
@@ -10359,7 +10359,7 @@ var ASM_CONSTS = {
       window_data.eventHandlerDropDragend = undefined;
     }
   },
-  898581: $0 => {
+  898597: $0 => {
     var target = document.querySelector(UTF8ToString($0));
     if (target) {
       target.removeEventListener("pointerenter", target.sdlEventHandlerPointerEnter);
@@ -10374,7 +10374,7 @@ var ASM_CONSTS = {
       target.sdlEventHandlerPointerGeneric = undefined;
     }
   },
-  899315: () => {
+  899331: () => {
     if (!window.matchMedia) {
       return -1;
     }
@@ -10386,7 +10386,7 @@ var ASM_CONSTS = {
     }
     return -1;
   },
-  899524: () => {
+  899540: () => {
     if (typeof (Module["SDL3"]) !== "undefined") {
       var SDL3 = Module["SDL3"];
       SDL3.themeChangedMatchMedia.removeEventListener("change", SDL3.eventHandlerThemeChanged);
@@ -10394,14 +10394,14 @@ var ASM_CONSTS = {
       SDL3.eventHandlerThemeChanged = undefined;
     }
   },
-  899777: () => window.innerWidth,
-  899807: () => window.innerHeight,
-  899838: $0 => {
+  899793: () => window.innerWidth,
+  899823: () => window.innerHeight,
+  899854: $0 => {
     Module["requestFullscreen"] = function(lockPointer, resizeCanvas) {
       _requestFullscreenThroughSDL($0);
     };
   },
-  899947: ($0, $1, $2) => {
+  899963: ($0, $1, $2) => {
     try {
       var id = UTF8ToString($0);
       var x = $1;
@@ -10415,7 +10415,7 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  900229: ($0, $1) => {
+  900245: ($0, $1) => {
     var id = UTF8ToString($0);
     var display = UTF8ToString($1);
     try {
@@ -10425,7 +10425,7 @@ var ASM_CONSTS = {
       }
     } catch (e) {}
   },
-  900402: ($0, $1) => {
+  900418: ($0, $1) => {
     var pngData = (growMemViews(), HEAPU8).buffer instanceof ArrayBuffer ? (growMemViews(), 
     HEAPU8).subarray($0, $0 + $1) : (growMemViews(), HEAPU8).slice($0, $0 + $1);
     var blob = new Blob([ pngData ], {
@@ -10444,10 +10444,10 @@ var ASM_CONSTS = {
     }
     link.href = url;
   },
-  900895: () => {
+  900911: () => {
     Module["requestFullscreen"] = function(lockPointer, resizeCanvas) {};
   },
-  900969: ($0, $1) => {
+  900985: ($0, $1) => {
     var id = UTF8ToString($0);
     var array = new Uint32Array(Module["HEAPU32"].buffer, $1, 4);
     try {
@@ -10463,7 +10463,7 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  901295: $0 => {
+  901311: $0 => {
     var id = UTF8ToString($0);
     try {
       var element = document.querySelector(id);
@@ -10473,15 +10473,15 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  901473: $0 => {
+  901489: $0 => {
     var w = $0;
     return window.innerWidth / 2 - w / 2;
   },
-  901527: $0 => {
+  901543: $0 => {
     var h = $0;
     return window.innerHeight / 2 - h / 2;
   },
-  901582: ($0, $1, $2) => {
+  901598: ($0, $1, $2) => {
     try {
       var id = UTF8ToString($0);
       var rect = new Int32Array(Module["HEAP32"].buffer, $1, 4);
@@ -10511,9 +10511,9 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  902310: () => window.innerWidth,
-  902340: () => window.innerHeight,
-  902371: $0 => {
+  902326: () => window.innerWidth,
+  902356: () => window.innerHeight,
+  902387: $0 => {
     var canvas = document.querySelector(UTF8ToString($0));
     canvas.SDL3_original_position = canvas.style.position;
     canvas.SDL3_original_top = canvas.style.top;
@@ -10534,7 +10534,7 @@ var ASM_CONSTS = {
     canvas.style.top = "0";
     canvas.style.left = "0";
   },
-  903069: () => {
+  903085: () => {
     var div = document.getElementById("SDL3_fill_document_background_elements");
     if (div) {
       if (div.SDL3_canvas_nextsib) {
@@ -10551,7 +10551,7 @@ var ASM_CONSTS = {
       div.remove();
     }
   },
-  903628: () => {
+  903644: () => {
     if (window.matchMedia) {
       var SDL3 = Module["SDL3"];
       SDL3.eventHandlerThemeChanged = function(event) {
@@ -10561,7 +10561,7 @@ var ASM_CONSTS = {
       SDL3.themeChangedMatchMedia.addEventListener("change", SDL3.eventHandlerThemeChanged);
     }
   },
-  903950: ($0, $1, $2, $3, $4) => {
+  903966: ($0, $1, $2, $3, $4) => {
     var title = UTF8ToString($0);
     var message = UTF8ToString($1);
     var background = UTF8ToString($2);
@@ -10581,7 +10581,7 @@ var ASM_CONSTS = {
     dialog.append(p);
     dialog.showModal();
   },
-  904491: ($0, $1, $2, $3, $4, $5, $6, $7) => {
+  904507: ($0, $1, $2, $3, $4, $5, $6, $7) => {
     var dialog_id = UTF8ToString($0);
     var text = UTF8ToString($1);
     var responseId = $2;
@@ -10622,7 +10622,7 @@ var ASM_CONSTS = {
     dialog.append(button);
     return true;
   },
-  905500: $0 => {
+  905516: $0 => {
     var dialog_id = UTF8ToString($0);
     var dialog = document.getElementById(dialog_id);
     if (!dialog) {
@@ -10630,7 +10630,7 @@ var ASM_CONSTS = {
     }
     return dialog.open;
   },
-  905638: $0 => {
+  905654: $0 => {
     var dialog_id = UTF8ToString($0);
     var dialog = document.getElementById(dialog_id);
     if (!dialog) {
@@ -10642,7 +10642,7 @@ var ASM_CONSTS = {
       return 0;
     }
   },
-  905820: ($0, $1) => {
+  905836: ($0, $1) => {
     alert(UTF8ToString($0) + "\n\n" + UTF8ToString($1));
   }
 };

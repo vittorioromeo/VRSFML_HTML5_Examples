@@ -9996,7 +9996,7 @@ Module["FS_createLazyFile"] = FS_createLazyFile;
 var proxiedFunctionTable = [ _proc_exit, exitOnMainThread, pthreadCreateProxied, ___syscall_fcntl64, ___syscall_fdatasync, ___syscall_fstat64, ___syscall_getcwd, ___syscall_ioctl, ___syscall_lstat64, ___syscall_newfstatat, ___syscall_openat, ___syscall_stat64, __mmap_js, __munmap_js, __setitimer_js, _eglChooseConfig, _eglCreateContext, _eglCreateWindowSurface, _eglDestroySurface, _eglGetConfigAttrib, _eglGetCurrentContext, _eglGetDisplay, _eglInitialize, _eglMakeCurrent, _eglSwapBuffers, _emscripten_exit_fullscreen, getCanvasSizeMainThread, setCanvasElementSizeMainThread, _emscripten_exit_pointerlock, _emscripten_get_device_pixel_ratio, _emscripten_get_element_css_size, _emscripten_get_fullscreen_status, _emscripten_get_gamepad_status, _emscripten_get_num_gamepads, _emscripten_get_screen_size, _emscripten_request_fullscreen_strategy, _emscripten_request_pointerlock, _emscripten_sample_gamepad_data, _emscripten_set_beforeunload_callback_on_thread, _emscripten_set_blur_callback_on_thread, _emscripten_set_element_css_size, _emscripten_set_focus_callback_on_thread, _emscripten_set_fullscreenchange_callback_on_thread, _emscripten_set_gamepadconnected_callback_on_thread, _emscripten_set_gamepaddisconnected_callback_on_thread, _emscripten_set_keydown_callback_on_thread, _emscripten_set_keypress_callback_on_thread, _emscripten_set_keyup_callback_on_thread, _emscripten_set_orientationchange_callback_on_thread, _emscripten_set_pointerlockchange_callback_on_thread, _emscripten_set_resize_callback_on_thread, _emscripten_set_visibilitychange_callback_on_thread, _emscripten_set_wheel_callback_on_thread, _emscripten_set_window_title, _environ_get, _environ_sizes_get, _fd_close, _fd_read, _fd_seek, _fd_write ];
 
 var ASM_CONSTS = {
-  3971444: () => {
+  3971460: () => {
     if (typeof (Module["SDL3"]) === "undefined") {
       Module["SDL3"] = {};
     }
@@ -10012,7 +10012,7 @@ var ASM_CONSTS = {
       };
     }
   },
-  3971758: $0 => {
+  3971774: $0 => {
     let gamepad = navigator["getGamepads"]()[$0];
     if (!gamepad) {
       return 0;
@@ -10028,7 +10028,7 @@ var ASM_CONSTS = {
     }
     return 0;
   },
-  3972223: $0 => {
+  3972239: $0 => {
     let gamepad = navigator["getGamepads"]()[$0];
     if (!gamepad) {
       return 0;
@@ -10044,14 +10044,14 @@ var ASM_CONSTS = {
     }
     return 0;
   },
-  3972695: $0 => {
+  3972711: $0 => {
     let gamepad = navigator["getGamepads"]()[$0];
     if (!gamepad) {
       return 0;
     }
     return gamepad["id"]["toLowerCase"]()["indexOf"]("xinput") >= 0;
   },
-  3972838: () => {
+  3972854: () => {
     const os = ([ "Android", "Linux", "iPhone", "Macintosh", "Windows" ]);
     const ua = navigator["userAgent"];
     for (let i = 0; i < os.length; i++) {
@@ -10061,15 +10061,15 @@ var ASM_CONSTS = {
     }
     return 0;
   },
-  3973048: $0 => {
+  3973064: $0 => {
     let gamepad = navigator["getGamepads"]()[$0];
     return gamepad && gamepad["vibrationActuator"] && gamepad["vibrationActuator"]["effects"]["includes"]("dual-rumble");
   },
-  3973216: $0 => {
+  3973232: $0 => {
     let gamepad = navigator["getGamepads"]()[$0];
     return gamepad && gamepad["vibrationActuator"] && gamepad["vibrationActuator"]["effects"]["includes"]("trigger-rumble");
   },
-  3973387: ($0, $1, $2, $3, $4) => {
+  3973403: ($0, $1, $2, $3, $4) => {
     let gamepad = navigator["getGamepads"]()[$0];
     if (!gamepad) {
       return false;
@@ -10084,7 +10084,7 @@ var ASM_CONSTS = {
     });
     return true;
   },
-  3973700: $0 => {
+  3973716: $0 => {
     try {
       var id = UTF8ToString($0);
       var canvas = document.querySelector(id);
@@ -10096,7 +10096,7 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  3973878: ($0, $1, $2, $3) => {
+  3973894: ($0, $1, $2, $3) => {
     var w = $0;
     var h = $1;
     var pixels = $2;
@@ -10138,7 +10138,7 @@ var ASM_CONSTS = {
     window_data.ctx.putImageData(window_data.image, 0, 0);
     return true;
   },
-  3974956: () => {
+  3974972: () => {
     var SDL3 = Module["SDL3"];
     SDL3["mouse_x"] = 0;
     SDL3["mouse_y"] = 0;
@@ -10164,7 +10164,7 @@ var ASM_CONSTS = {
       }
     });
   },
-  3975644: ($0, $1, $2, $3, $4) => {
+  3975660: ($0, $1, $2, $3, $4) => {
     var w = $0;
     var h = $1;
     var hot_x = $2;
@@ -10185,20 +10185,20 @@ var ASM_CONSTS = {
     stringToUTF8(url, urlBuf, url.length + 1);
     return urlBuf;
   },
-  3976302: $0 => {
+  3976318: $0 => {
     if (Module["canvas"]) {
       Module["canvas"].style["cursor"] = UTF8ToString($0);
     }
   },
-  3976385: () => {
+  3976401: () => {
     if (Module["canvas"]) {
       Module["canvas"].style["cursor"] = "none";
     }
   },
-  3976454: () => Module["SDL3"]["mouse_x"],
-  3976492: () => Module["SDL3"]["mouse_y"],
-  3976530: $0 => Module["SDL3"]["mouse_buttons"][$0],
-  3976578: $0 => {
+  3976470: () => Module["SDL3"]["mouse_x"],
+  3976508: () => Module["SDL3"]["mouse_y"],
+  3976546: $0 => Module["SDL3"]["mouse_buttons"][$0],
+  3976594: $0 => {
     var data = $0;
     document.sdlEventHandlerLockKeysCheck = function(event) {
       if ((event.key != "CapsLock") && (event.key != "NumLock") && (event.key != "ScrollLock")) {
@@ -10207,10 +10207,10 @@ var ASM_CONSTS = {
     };
     document.addEventListener("keydown", document.sdlEventHandlerLockKeysCheck);
   },
-  3977005: () => {
+  3977021: () => {
     document.removeEventListener("keydown", document.sdlEventHandlerLockKeysCheck);
   },
-  3977089: $0 => {
+  3977105: $0 => {
     var target = document;
     if (target) {
       target.sdlEventHandlerMouseButtonUpGlobal = function(event) {
@@ -10224,7 +10224,7 @@ var ASM_CONSTS = {
       target.addEventListener("pointerup", target.sdlEventHandlerMouseButtonUpGlobal);
     }
   },
-  3977450: $0 => {
+  3977466: $0 => {
     var SDL3 = Module["SDL3"];
     if (SDL3.makePointerEventCStruct === undefined) {
       SDL3.makePointerEventCStruct = function(left, top, event) {
@@ -10262,7 +10262,7 @@ var ASM_CONSTS = {
       };
     }
   },
-  3978442: $0 => {
+  3978458: $0 => {
     var id = UTF8ToString($0);
     try {
       var canvas = document.querySelector(id);
@@ -10272,23 +10272,23 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  3978608: () => document.hasFocus(),
-  3978640: () => {
+  3978624: () => document.hasFocus(),
+  3978656: () => {
     var target = document;
     if (target) {
       target.removeEventListener("pointerup", target.sdlEventHandlerMouseButtonUpGlobal);
       target.sdlEventHandlerMouseButtonUpGlobal = undefined;
     }
   },
-  3978822: () => document.body.clientWidth,
-  3978860: () => document.body.clientHeight,
-  3978899: () => window.innerWidth,
-  3978929: () => window.innerHeight,
-  3978960: () => window.outerWidth,
-  3978990: () => window.outerHeight,
-  3979021: () => window.pageXOffset,
-  3979052: () => window.pageYOffset,
-  3979083: ($0, $1) => {
+  3978838: () => document.body.clientWidth,
+  3978876: () => document.body.clientHeight,
+  3978915: () => window.innerWidth,
+  3978945: () => window.innerHeight,
+  3978976: () => window.outerWidth,
+  3979006: () => window.outerHeight,
+  3979037: () => window.pageXOffset,
+  3979068: () => window.pageYOffset,
+  3979099: ($0, $1) => {
     var target = document.querySelector(UTF8ToString($1));
     if (target) {
       var SDL3 = Module["SDL3"];
@@ -10326,7 +10326,7 @@ var ASM_CONSTS = {
       target.addEventListener("pointerup", target.sdlEventHandlerPointerGeneric);
     }
   },
-  3980471: ($0, $1, $2) => {
+  3980487: ($0, $1, $2) => {
     var id = UTF8ToString($1);
     var target = document.querySelector(id);
     if (target) {
@@ -10415,7 +10415,7 @@ var ASM_CONSTS = {
       target.addEventListener("dragleave", window_data.eventHandlerDropDragend);
     }
   },
-  3983095: $0 => {
+  3983111: $0 => {
     var id = UTF8ToString($0);
     var target = document.querySelector(id);
     if (target) {
@@ -10452,7 +10452,7 @@ var ASM_CONSTS = {
       window_data.eventHandlerDropDragend = undefined;
     }
   },
-  3984165: $0 => {
+  3984181: $0 => {
     var target = document.querySelector(UTF8ToString($0));
     if (target) {
       target.removeEventListener("pointerenter", target.sdlEventHandlerPointerEnter);
@@ -10467,7 +10467,7 @@ var ASM_CONSTS = {
       target.sdlEventHandlerPointerGeneric = undefined;
     }
   },
-  3984899: () => {
+  3984915: () => {
     if (!window.matchMedia) {
       return -1;
     }
@@ -10479,7 +10479,7 @@ var ASM_CONSTS = {
     }
     return -1;
   },
-  3985108: () => {
+  3985124: () => {
     if (typeof (Module["SDL3"]) !== "undefined") {
       var SDL3 = Module["SDL3"];
       SDL3.themeChangedMatchMedia.removeEventListener("change", SDL3.eventHandlerThemeChanged);
@@ -10487,14 +10487,14 @@ var ASM_CONSTS = {
       SDL3.eventHandlerThemeChanged = undefined;
     }
   },
-  3985361: () => window.innerWidth,
-  3985391: () => window.innerHeight,
-  3985422: $0 => {
+  3985377: () => window.innerWidth,
+  3985407: () => window.innerHeight,
+  3985438: $0 => {
     Module["requestFullscreen"] = function(lockPointer, resizeCanvas) {
       _requestFullscreenThroughSDL($0);
     };
   },
-  3985531: ($0, $1, $2) => {
+  3985547: ($0, $1, $2) => {
     try {
       var id = UTF8ToString($0);
       var x = $1;
@@ -10508,7 +10508,7 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  3985813: ($0, $1) => {
+  3985829: ($0, $1) => {
     var id = UTF8ToString($0);
     var display = UTF8ToString($1);
     try {
@@ -10518,7 +10518,7 @@ var ASM_CONSTS = {
       }
     } catch (e) {}
   },
-  3985986: ($0, $1) => {
+  3986002: ($0, $1) => {
     var pngData = (growMemViews(), HEAPU8).buffer instanceof ArrayBuffer ? (growMemViews(), 
     HEAPU8).subarray($0, $0 + $1) : (growMemViews(), HEAPU8).slice($0, $0 + $1);
     var blob = new Blob([ pngData ], {
@@ -10537,10 +10537,10 @@ var ASM_CONSTS = {
     }
     link.href = url;
   },
-  3986479: () => {
+  3986495: () => {
     Module["requestFullscreen"] = function(lockPointer, resizeCanvas) {};
   },
-  3986553: ($0, $1) => {
+  3986569: ($0, $1) => {
     var id = UTF8ToString($0);
     var array = new Uint32Array(Module["HEAPU32"].buffer, $1, 4);
     try {
@@ -10556,7 +10556,7 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  3986879: $0 => {
+  3986895: $0 => {
     var id = UTF8ToString($0);
     try {
       var element = document.querySelector(id);
@@ -10566,15 +10566,15 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  3987057: $0 => {
+  3987073: $0 => {
     var w = $0;
     return window.innerWidth / 2 - w / 2;
   },
-  3987111: $0 => {
+  3987127: $0 => {
     var h = $0;
     return window.innerHeight / 2 - h / 2;
   },
-  3987166: ($0, $1, $2) => {
+  3987182: ($0, $1, $2) => {
     try {
       var id = UTF8ToString($0);
       var rect = new Int32Array(Module["HEAP32"].buffer, $1, 4);
@@ -10604,9 +10604,9 @@ var ASM_CONSTS = {
     } catch (e) {}
     return false;
   },
-  3987894: () => window.innerWidth,
-  3987924: () => window.innerHeight,
-  3987955: $0 => {
+  3987910: () => window.innerWidth,
+  3987940: () => window.innerHeight,
+  3987971: $0 => {
     var canvas = document.querySelector(UTF8ToString($0));
     canvas.SDL3_original_position = canvas.style.position;
     canvas.SDL3_original_top = canvas.style.top;
@@ -10627,7 +10627,7 @@ var ASM_CONSTS = {
     canvas.style.top = "0";
     canvas.style.left = "0";
   },
-  3988653: () => {
+  3988669: () => {
     var div = document.getElementById("SDL3_fill_document_background_elements");
     if (div) {
       if (div.SDL3_canvas_nextsib) {
@@ -10644,7 +10644,7 @@ var ASM_CONSTS = {
       div.remove();
     }
   },
-  3989212: () => {
+  3989228: () => {
     if (window.matchMedia) {
       var SDL3 = Module["SDL3"];
       SDL3.eventHandlerThemeChanged = function(event) {
@@ -10654,7 +10654,7 @@ var ASM_CONSTS = {
       SDL3.themeChangedMatchMedia.addEventListener("change", SDL3.eventHandlerThemeChanged);
     }
   },
-  3989534: ($0, $1, $2, $3, $4) => {
+  3989550: ($0, $1, $2, $3, $4) => {
     var title = UTF8ToString($0);
     var message = UTF8ToString($1);
     var background = UTF8ToString($2);
@@ -10674,7 +10674,7 @@ var ASM_CONSTS = {
     dialog.append(p);
     dialog.showModal();
   },
-  3990075: ($0, $1, $2, $3, $4, $5, $6, $7) => {
+  3990091: ($0, $1, $2, $3, $4, $5, $6, $7) => {
     var dialog_id = UTF8ToString($0);
     var text = UTF8ToString($1);
     var responseId = $2;
@@ -10715,7 +10715,7 @@ var ASM_CONSTS = {
     dialog.append(button);
     return true;
   },
-  3991084: $0 => {
+  3991100: $0 => {
     var dialog_id = UTF8ToString($0);
     var dialog = document.getElementById(dialog_id);
     if (!dialog) {
@@ -10723,7 +10723,7 @@ var ASM_CONSTS = {
     }
     return dialog.open;
   },
-  3991222: $0 => {
+  3991238: $0 => {
     var dialog_id = UTF8ToString($0);
     var dialog = document.getElementById(dialog_id);
     if (!dialog) {
@@ -10735,10 +10735,10 @@ var ASM_CONSTS = {
       return 0;
     }
   },
-  3991404: ($0, $1) => {
+  3991420: ($0, $1) => {
     alert(UTF8ToString($0) + "\n\n" + UTF8ToString($1));
   },
-  3991461: ($0, $1, $2, $3, $4) => {
+  3991477: ($0, $1, $2, $3, $4) => {
     if (typeof window === "undefined" || (window.AudioContext || window.webkitAudioContext) === undefined) {
       return 0;
     }
@@ -10810,7 +10810,7 @@ var ASM_CONSTS = {
     window.miniaudio.referenceCount += 1;
     return 1;
   },
-  3993639: () => {
+  3993655: () => {
     if (typeof (window.miniaudio) !== "undefined") {
       window.miniaudio.unlock_event_types.map(function(event_type) {
         document.removeEventListener(event_type, window.miniaudio.unlock, true);
@@ -10821,8 +10821,8 @@ var ASM_CONSTS = {
       }
     }
   },
-  3993943: () => (navigator.mediaDevices !== undefined && navigator.mediaDevices.getUserMedia !== undefined),
-  3994047: () => {
+  3993959: () => (navigator.mediaDevices !== undefined && navigator.mediaDevices.getUserMedia !== undefined),
+  3994063: () => {
     try {
       var temp = new (window.AudioContext || window.webkitAudioContext);
       var sampleRate = temp.sampleRate;
@@ -10832,7 +10832,7 @@ var ASM_CONSTS = {
       return 0;
     }
   },
-  3994218: ($0, $1, $2, $3, $4, $5) => {
+  3994234: ($0, $1, $2, $3, $4, $5) => {
     var deviceType = $0;
     var channels = $1;
     var sampleRate = $2;
@@ -10903,8 +10903,8 @@ var ASM_CONSTS = {
     device.pDevice = pDevice;
     return window.miniaudio.track_device(device);
   },
-  3997095: $0 => window.miniaudio.get_device_by_index($0).webaudio.sampleRate,
-  3997168: $0 => {
+  3997111: $0 => window.miniaudio.get_device_by_index($0).webaudio.sampleRate,
+  3997184: $0 => {
     var device = window.miniaudio.get_device_by_index($0);
     if (device.scriptNode !== undefined) {
       device.scriptNode.onaudioprocess = function(e) {};
@@ -10919,15 +10919,15 @@ var ASM_CONSTS = {
     device.webaudio = undefined;
     device.pDevice = undefined;
   },
-  3997568: $0 => {
+  3997584: $0 => {
     window.miniaudio.untrack_device_by_index($0);
   },
-  3997618: $0 => {
+  3997634: $0 => {
     var device = window.miniaudio.get_device_by_index($0);
     device.webaudio.resume();
     device.state = window.miniaudio.device_state.started;
   },
-  3997757: $0 => {
+  3997773: $0 => {
     var device = window.miniaudio.get_device_by_index($0);
     device.webaudio.suspend();
     device.state = window.miniaudio.device_state.stopped;
